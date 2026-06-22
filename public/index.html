@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RACV Concierge</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  :root {
+    --navy: #002664;        /* RACV-ish deep blue */
+    --navy-soft: #0a3a8f;
+    --bg: #f4f6fa;
+    --card: #ffffff;
+    --ink: #1c2433;
+    --muted: #6b7589;
+    --line: #e2e7f0;
+    --gold: #c8a24a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+    height: 100vh; display: flex; flex-direction: column;
+  }
+  header {
+    background: var(--navy); color: #fff; padding: 18px 24px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.12);
+  }
+  header .logo {
+    width: 40px; height: 40px; border-radius: 8px; background: var(--gold);
+    color: var(--navy); font-weight: 800; display: grid; place-items: center; font-size: 15px;
+    letter-spacing: .5px;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header p { margin: 2px 0 0; font-size: 12.5px; color: #b9c6e6; }
+  main {
+    flex: 1; overflow-y: auto; padding: 24px; max-width: 860px;
+    width: 100%; margin: 0 auto;
+  }
+  .msg { display: flex; margin-bottom: 18px; }
+  .msg.user { justify-content: flex-end; }
+  .bubble {
+    max-width: 78%; padding: 14px 18px; border-radius: 16px; line-height: 1.55;
+    font-size: 15px; box-shadow: 0 1px 3px rgba(20,30,60,.06);
+  }
+  .msg.assistant .bubble { background: var(--card); border: 1px solid var(--line); border-top-left-radius: 4px; }
+  .msg.user .bubble { background: var(--navy); color: #fff; border-top-right-radius: 4px; }
+  .bubble h1, .bubble h2, .bubble h3 { font-size: 16px; margin: 14px 0 6px; color: var(--navy); }
+  .msg.user .bubble h1, .msg.user .bubble h2, .msg.user .bubble h3 { color: #fff; }
+  .bubble p { margin: 8px 0; }
+  .bubble ul, .bubble ol { margin: 8px 0; padding-left: 20px; }
+  .bubble li { margin: 3px 0; }
+  .bubble strong { color: inherit; }
+  .bubble:first-child { margin-top: 0; }
+  .typing { color: var(--muted); font-style: italic; }
+  footer {
+    border-top: 1px solid var(--line); background: var(--card); padding: 14px 24px;
+  }
+  .composer { max-width: 860px; margin: 0 auto; display: flex; gap: 10px; align-items: flex-end; }
+  textarea {
+    flex: 1; resize: none; border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; font: inherit; font-size: 15px; max-height: 140px; outline: none;
+  }
+  textarea:focus { border-color: var(--navy-soft); }
+  button {
+    background: var(--navy); color: #fff; border: 0; border-radius: 12px;
+    padding: 12px 20px; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  .hint { max-width: 860px; margin: 8px auto 0; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo">RACV</div>
+    <div>
+      <h1>RACV Member Concierge</h1>
+      <p>Your personalised stay, planned around you.</p>
+    </div>
+  </header>
+
+  <main id="thread"></main>
+
+  <footer>
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="Type your message…" autofocus></textarea>
+      <button id="send">Send</button>
+    </div>
+    <div class="hint">Tip: try member number <strong>100201</strong>, surname <strong>Whitman</strong>.</div>
+  </footer>
+
+<script>
+  const thread = document.getElementById('thread');
+  const input = document.getElementById('input');
+  const sendBtn = document.getElementById('send');
+
+  // Full conversation history sent to the backend each turn.
+  let history = [];
+
+  function render(role, markdown) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg ' + role;
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = role === 'assistant' ? marked.parse(markdown) : escapeHtml(markdown);
+    wrap.appendChild(bubble);
+    thread.appendChild(wrap);
+    thread.scrollTop = thread.scrollHeight;
+    return bubble;
+  }
+  function escapeHtml(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])).replace(/\n/g,'<br>');}
+
+  async function send() {
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = ''; input.style.height = 'auto';
+    render('user', text);
+    history.push({ role: 'user', content: text });
+
+    sendBtn.disabled = true;
+    const typing = render('assistant', '');
+    typing.parentElement.querySelector('.bubble').innerHTML = '<span class="typing">Composing…</span>';
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history }),
+      });
+      const data = await res.json();
+      typing.parentElement.remove();
+      if (data.error) {
+        render('assistant', '⚠️ ' + (data.detail || data.error));
+      } else {
+        history = data.messages;            // keep server-augmented history (tool calls etc.)
+        render('assistant', data.reply || '…');
+      }
+    } catch (e) {
+      typing.parentElement.remove();
+      render('assistant', '⚠️ Connection error: ' + e.message);
+    } finally {
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  }
+
+  sendBtn.addEventListener('click', send);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+  });
+
+  // Greeting
+  render('assistant', "Good day, and welcome to the **RACV Member Concierge**. I'd be delighted to plan your stay.\n\nTo begin, may I have your **member number** and **surname**?");
+</script>
+</body>
+</html>
