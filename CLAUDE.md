@@ -1,8 +1,8 @@
 # CLAUDE.md — project context for Claude Code
 
 RACV Member Concierge: a standalone web app (Node/Express + static frontend,
-Supabase Postgres, Anthropic API, Open-Meteo) that builds personalised resort
-stay itineraries for members.
+Supabase Postgres, Z.ai GLM via the Anthropic-compatible endpoint, Open-Meteo)
+that builds personalised resort stay itineraries for members.
 
 ## Start here
 1. Read **HANDOVER.md** in full — it has setup, architecture, the current state,
@@ -14,7 +14,7 @@ stay itineraries for members.
 ## Run
 ```bash
 # In Supabase SQL Editor, run in order: db/schema.sql, db/seed.sql, db/seed_docs.sql
-cd server && cp .env.example .env   # fill in Supabase + Anthropic keys
+cd server && cp .env.example .env   # fill in Supabase + Z.ai keys
 npm install && npm start            # → http://localhost:3000
 ```
 

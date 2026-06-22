@@ -5,8 +5,8 @@
 functional chat UI are complete. The two remaining work items are a **brand
 redesign of the frontend** and **live event-fetching** (details in §6).
 **Project type:** Standalone web app — Node/Express backend + static frontend,
-Supabase (Postgres) data layer, Anthropic API for the agent, Open-Meteo for
-weather.
+Supabase (Postgres) data layer, Z.ai GLM models (via the Anthropic-compatible
+endpoint, called with the Anthropic SDK) for the agent, Open-Meteo for weather.
 
 > ⚠️ This is an internal proof-of-concept, not an official RACV product. Use
 > RACV's visual style to make the demo feel authentic, but do not claim
@@ -40,9 +40,9 @@ Browser (public/index.html)
       │  POST /api/chat   { messages: [...] }
       ▼
 Express backend (server/index.js)
-      ├─ Anthropic API ............ agent loop (system prompt + 5 tools)
-      ├─ Supabase (service key) ... members, bookings, resorts, knowledge, events
-      └─ Open-Meteo API ........... live weather by resort lat/long (no key)
+      ├─ Z.ai GLM (Anthropic-compat) ... agent loop (system prompt + 5 tools)
+      ├─ Supabase (service key) ........ members, bookings, resorts, knowledge, events
+      └─ Open-Meteo API ................ live weather by resort lat/long (no key)
 ```
 
 - The browser holds the conversation and posts the full history each turn; the
@@ -90,7 +90,7 @@ concierge-app/
 ### 4.1 Prerequisites
 - Node.js 18+
 - A Supabase project (free tier is fine)
-- An Anthropic API key
+- A Z.ai API key — https://z.ai/model-api
 
 ### 4.2 Database
 In the Supabase **SQL Editor**, run these three files in order:
@@ -112,8 +112,9 @@ cp .env.example .env
 # edit .env:
 #   SUPABASE_URL=...                  (Project Settings → API → Project URL)
 #   SUPABASE_SERVICE_ROLE_KEY=...     (Project Settings → API → service_role)
-#   ANTHROPIC_API_KEY=...             (console.anthropic.com)
-#   ANTHROPIC_MODEL=claude-sonnet-4-6 (optional override)
+#   ZAI_API_KEY=...                   (https://z.ai/model-api)
+#   ZAI_MODEL=glm-4.6                 (optional override; glm-4.5/4.5-air/4.7 also supported)
+#   ZAI_BASE_URL=https://api.z.ai/api/anthropic   (optional override)
 ```
 
 ### 4.4 Run
@@ -224,8 +225,10 @@ Backend health check: `GET /api/health` → `{ ok: true, model: ... }`.
 - **Weather** is reliable only ~16 days out (Open-Meteo). All demo bookings sit
   inside that window. For stays further out the agent falls back to seasonal
   judgement.
-- **Model string** is configurable via `ANTHROPIC_MODEL`; default
-  `claude-sonnet-4-6`. Adjust if your account uses a different identifier.
+- **Model string** is configurable via `ZAI_MODEL`; default `glm-4.6`.
+  Z.ai's Anthropic-compatible endpoint also accepts `glm-4.5`, `glm-4.5-air`,
+  and `glm-4.7`. Switch the base URL or key by overriding `ZAI_BASE_URL` and
+  `ZAI_API_KEY` — the Anthropic SDK is still the client.
 - **RACV City Club Melbourne** is included as a property (a guide was provided)
   even though it's a members' club rather than a resort.
 - Coordinates in `seed.sql` are accurate to within a few hundred metres — fine

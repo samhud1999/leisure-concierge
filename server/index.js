@@ -15,13 +15,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const {
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
-  ANTHROPIC_API_KEY,
-  ANTHROPIC_MODEL = 'claude-sonnet-4-6',
+  ZAI_API_KEY,
+  ZAI_MODEL = 'glm-4.6',
+  ZAI_BASE_URL = 'https://api.z.ai/api/anthropic',
   PORT = 3000,
   RESORT_BRAND = 'RACV',
 } = process.env;
 
-for (const [k, v] of Object.entries({ SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY })) {
+for (const [k, v] of Object.entries({ SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ZAI_API_KEY })) {
   if (!v) {
     console.error(`\n[config] Missing required env var: ${k}. Copy .env.example to .env and fill it in.\n`);
     process.exit(1);
@@ -31,7 +32,7 @@ for (const [k, v] of Object.entries({ SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, A
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
-const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+const anthropic = new Anthropic({ apiKey: ZAI_API_KEY, baseURL: ZAI_BASE_URL });
 
 // ---------------------------------------------------------------------------
 // Safe column whitelists — sensitive fields are never selected, so even a
@@ -79,7 +80,7 @@ async function fetchWeather(lat, lon, start, end) {
 }
 
 // ---------------------------------------------------------------------------
-// Tool definitions (sent to Claude)
+// Tool definitions (sent to the model via the Anthropic-compatible endpoint)
 // ---------------------------------------------------------------------------
 const TOOLS = [
   {
@@ -238,7 +239,7 @@ async function runAgent(messages) {
   let turns = 0;
   while (turns++ < 12) {
     const resp = await anthropic.messages.create({
-      model: ANTHROPIC_MODEL,
+      model: ZAI_MODEL,
       max_tokens: 3000,
       system: SYSTEM,
       tools: TOOLS,
@@ -292,9 +293,9 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, model: ANTHROPIC_MODEL }));
+app.get('/api/health', (_req, res) => res.json({ ok: true, model: ZAI_MODEL }));
 
 app.listen(PORT, () => {
   console.log(`\n  RACV Concierge running:  http://localhost:${PORT}`);
-  console.log(`  Model: ${ANTHROPIC_MODEL}   Brand: ${RESORT_BRAND}\n`);
+  console.log(`  Model: ${ZAI_MODEL} (via ${ZAI_BASE_URL})   Brand: ${RESORT_BRAND}\n`);
 });

@@ -15,16 +15,16 @@ Browser (chat UI)
       │  HTTPS
       ▼
 Backend server (Node/Express)
-      ├─ Anthropic API  ............ runs the concierge agent (the system prompt)
-      ├─ Supabase (service key) .... members, bookings, resorts, knowledge, events
-      └─ Open-Meteo API ............ live weather forecast for the resort + stay dates
+      ├─ Z.ai GLM (Anthropic-compat) ... runs the concierge agent (the system prompt)
+      ├─ Supabase (service key) ........ members, bookings, resorts, knowledge, events
+      └─ Open-Meteo API ................ live weather forecast for the resort + stay dates
 ```
 
 - **Supabase** holds all the data. The backend talks to it with the **service
   role key**, server-side only.
 - The **agent logic** (identity gate, preference menu, itinerary build, security
   guardrails) lives in the backend and is driven by your system prompt.
-- The **browser never sees** the service key or the Anthropic key — only the backend does.
+- The **browser never sees** the service key or the Z.ai key — only the backend does.
 
 ---
 
@@ -38,7 +38,7 @@ Backend server (Node/Express)
 | 4 | Web app: backend + chat UI | ✅ Me |
 | 5 | **Create the Supabase project** | 👉 You |
 | 6 | **Run `schema.sql` then `seed.sql` in Supabase** | 👉 You |
-| 7 | **Send me your Supabase URL + keys, and an Anthropic API key** | 👉 You |
+| 7 | **Send me your Supabase URL + keys, and a Z.ai API key** | 👉 You |
 | 8 | I wire the `.env`, run it, and we test end-to-end | ✅ Me |
 
 ---
@@ -79,9 +79,13 @@ Backend server (Node/Express)
    > backend `.env`, never in frontend code or a public repo. For a throwaway PoC
    > this is fine; rotate or delete the project when you're done.
 
-### Step 5 — Anthropic API key (powers the agent)
-1. Go to **https://console.anthropic.com** → **API Keys** → **Create key**.
+### Step 5 — Z.ai API key (powers the agent)
+1. Go to **https://z.ai/model-api** → sign in → **API Keys** → **Create key**.
 2. Copy it and send it to me (also secret).
+
+   The backend uses Z.ai's **Anthropic-compatible** endpoint
+   (`https://api.z.ai/api/anthropic`), so the Anthropic SDK is the client and
+   no Anthropic key is needed. Default model is `glm-4.6`.
 
    > If you'd rather not paste keys into chat, I'll instead give you a `.env`
    > template and you can fill it in locally and just run the app yourself —

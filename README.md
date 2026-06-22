@@ -26,7 +26,7 @@ concierge-app/
 1. **Supabase:** create a project, then in the SQL Editor run, in order,
    `db/schema.sql`, `db/seed.sql`, `db/seed_docs.sql`. (Details in `SETUP.md`.)
 2. **Config:** `cd server && cp .env.example .env`, then fill in your
-   Supabase URL + service role key and your Anthropic API key.
+   Supabase URL + service role key and your Z.ai API key.
 3. **Run:**
    ```bash
    cd server
@@ -39,9 +39,9 @@ concierge-app/
 ## How it works
 
 - The browser holds the chat history and posts it to `POST /api/chat`.
-- The backend runs the agent loop against the Anthropic API with five tools:
-  `member_lookup`, `get_booking`, `get_resort_knowledge`, `get_events`,
-  `get_weather`.
+- The backend runs the agent loop against **Z.ai's Anthropic-compatible
+  endpoint** (default model `glm-4.6`) with five tools: `member_lookup`,
+  `get_booking`, `get_resort_knowledge`, `get_events`, `get_weather`.
 - The first four are backed by Supabase; `get_weather` calls **Open-Meteo**
   (free, no key) using each resort's stored coordinates.
 - **Security by construction:** the tool handlers only ever SELECT
