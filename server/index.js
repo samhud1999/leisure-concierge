@@ -221,6 +221,9 @@ const handlers = {
     ]);
 
     if (seedResult.error) return { error: 'events_lookup_failed' };
+    if (sourcesResult.error) {
+      console.warn('[get_events] event_sources lookup failed — live fetch skipped:', sourcesResult.error.message);
+    }
 
     const seedEvents = (seedResult.data || []).filter(
       (e) => (e.end_date || e.start_date) >= start_date
