@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { extract as torquayCowrieMarket } from '../extractors/torquayCowrieMarket.js';
+import { extract as visitGreatOceanRoad } from '../extractors/visitGreatOceanRoad.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixture = (name) =>
@@ -23,5 +24,25 @@ test('torquayCowrieMarket extracts both upcoming market dates', async () => {
 
 test('torquayCowrieMarket returns [] if no dates found', () => {
   const out = torquayCowrieMarket('<html><body><p>Closed for winter.</p></body></html>');
+  assert.deepEqual(out, []);
+});
+
+test('visitGreatOceanRoad extracts both event cards', async () => {
+  const html = await fixture('visitGreatOceanRoad.html');
+  const out = visitGreatOceanRoad(html);
+  assert.equal(out.length, 2);
+  assert.equal(out[0].name, 'Torquay Sunset Sessions');
+  assert.equal(out[0].start_date, '2026-06-26');
+  assert.equal(out[0].event_time, '5pm – 8pm');
+  assert.equal(out[0].location, 'Torquay Foreshore');
+  assert.equal(out[0].category, 'music');
+  assert.equal(out[0].environment, 'outdoor');
+  assert.equal(out[0].description, 'Live acoustic sets at sunset on the foreshore.');
+  assert.equal(out[1].end_date, '2026-06-28');
+  assert.equal(out[1].category, 'culture');
+});
+
+test('visitGreatOceanRoad returns [] when no cards present', () => {
+  const out = visitGreatOceanRoad('<html><body><p>No events.</p></body></html>');
   assert.deepEqual(out, []);
 });
