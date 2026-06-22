@@ -85,7 +85,9 @@ Backend server (Node/Express)
 
    The backend uses Z.ai's **Anthropic-compatible** endpoint
    (`https://api.z.ai/api/anthropic`), so the Anthropic SDK is the client and
-   no Anthropic key is needed. Default model is `glm-4.6`.
+   no Anthropic key is needed. Default model is `glm-4.7-flash` (cheap & fast
+   for dev/test); swap via `ZAI_MODEL` in `.env` to `glm-4.7`, `glm-4.6`,
+   `glm-4.5`, or `glm-4.5-air` when you want a different tier.
 
    > If you'd rather not paste keys into chat, I'll instead give you a `.env`
    > template and you can fill it in locally and just run the app yourself —

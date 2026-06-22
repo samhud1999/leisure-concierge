@@ -40,8 +40,10 @@ concierge-app/
 
 - The browser holds the chat history and posts it to `POST /api/chat`.
 - The backend runs the agent loop against **Z.ai's Anthropic-compatible
-  endpoint** (default model `glm-4.6`) with five tools: `member_lookup`,
-  `get_booking`, `get_resort_knowledge`, `get_events`, `get_weather`.
+  endpoint** (default model `glm-4.7-flash` for dev/test; swap via
+  `ZAI_MODEL` to `glm-4.7`, `glm-4.6`, `glm-4.5`, or `glm-4.5-air`) with five
+  tools: `member_lookup`, `get_booking`, `get_resort_knowledge`, `get_events`,
+  `get_weather`.
 - The first four are backed by Supabase; `get_weather` calls **Open-Meteo**
   (free, no key) using each resort's stored coordinates.
 - **Security by construction:** the tool handlers only ever SELECT

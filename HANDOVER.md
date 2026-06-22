@@ -112,8 +112,9 @@ cp .env.example .env
 # edit .env:
 #   SUPABASE_URL=...                  (Project Settings → API → Project URL)
 #   SUPABASE_SERVICE_ROLE_KEY=...     (Project Settings → API → service_role)
-#   ZAI_API_KEY=...                   (https://z.ai/model-api)
-#   ZAI_MODEL=glm-4.6                 (optional override; glm-4.5/4.5-air/4.7 also supported)
+#   ZAI_API_KEY=...                       (https://z.ai/model-api)
+#   ZAI_MODEL=glm-4.7-flash               (DEFAULT — cheap & fast for dev/test)
+#                                          swap to glm-4.7, glm-4.6, glm-4.5, or glm-4.5-air
 #   ZAI_BASE_URL=https://api.z.ai/api/anthropic   (optional override)
 ```
 
@@ -225,10 +226,11 @@ Backend health check: `GET /api/health` → `{ ok: true, model: ... }`.
 - **Weather** is reliable only ~16 days out (Open-Meteo). All demo bookings sit
   inside that window. For stays further out the agent falls back to seasonal
   judgement.
-- **Model string** is configurable via `ZAI_MODEL`; default `glm-4.6`.
-  Z.ai's Anthropic-compatible endpoint also accepts `glm-4.5`, `glm-4.5-air`,
-  and `glm-4.7`. Switch the base URL or key by overriding `ZAI_BASE_URL` and
-  `ZAI_API_KEY` — the Anthropic SDK is still the client.
+- **Model string** is configurable via `ZAI_MODEL`. Default is `glm-4.7-flash`
+  (cheap & fast — picked for dev/test). Z.ai's Anthropic-compatible endpoint
+  also accepts `glm-4.7`, `glm-4.6`, `glm-4.5`, and `glm-4.5-air`; swap any of
+  these into `.env` to change tiers. Switch the base URL or key by overriding
+  `ZAI_BASE_URL` and `ZAI_API_KEY` — the Anthropic SDK is still the client.
 - **RACV City Club Melbourne** is included as a property (a guide was provided)
   even though it's a members' club rather than a resort.
 - Coordinates in `seed.sql` are accurate to within a few hundred metres — fine
