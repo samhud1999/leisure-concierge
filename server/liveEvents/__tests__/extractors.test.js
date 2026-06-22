@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { extract as torquayCowrieMarket } from '../extractors/torquayCowrieMarket.js';
 import { extract as visitGreatOceanRoad } from '../extractors/visitGreatOceanRoad.js';
+import { extract as surfCoastEvents } from '../extractors/surfCoastEvents.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixture = (name) =>
@@ -44,5 +45,28 @@ test('visitGreatOceanRoad extracts both event cards', async () => {
 
 test('visitGreatOceanRoad returns [] when no cards present', () => {
   const out = visitGreatOceanRoad('<html><body><p>No events.</p></body></html>');
+  assert.deepEqual(out, []);
+});
+
+test('surfCoastEvents extracts from JSON-LD with date splitting', async () => {
+  const html = await fixture('surfCoastEvents.html');
+  const out = surfCoastEvents(html);
+  assert.equal(out.length, 2);
+  assert.equal(out[0].name, 'Torquay Twilight Run');
+  assert.equal(out[0].start_date, '2026-06-29');
+  assert.equal(out[0].end_date, '2026-06-29');
+  assert.equal(out[0].event_time, '17:30');
+  assert.equal(out[0].location, 'Torquay Esplanade');
+  assert.equal(out[1].name, 'Indoor Trivia Night');
+  assert.equal(out[1].event_time, '19:00');
+});
+
+test('surfCoastEvents returns [] if no JSON-LD present', () => {
+  const out = surfCoastEvents('<html><body><p>Nothing.</p></body></html>');
+  assert.deepEqual(out, []);
+});
+
+test('surfCoastEvents tolerates malformed JSON-LD', () => {
+  const out = surfCoastEvents('<html><body><script type="application/ld+json">{ not json</script></body></html>');
   assert.deepEqual(out, []);
 });
