@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { buildSystemPrompt } from './systemPrompt.js';
+import { fetchLiveEventsFor, CACHE as LIVE_EVENTS_CACHE } from './liveEvents/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -205,16 +206,49 @@ const handlers = {
   async get_events({ resort_slug, start_date, end_date }) {
     const resort = await resortBySlug(resort_slug);
     if (!resort) return { error: 'resort_not_found' };
-    // events overlapping [start_date, end_date]
-    const { data, error } = await supabase
-      .from('events')
-      .select('name, start_date, end_date, event_time, location, category, environment, source_url, description')
-      .eq('resort_id', resort.id)
-      .lte('start_date', end_date)
-      .order('start_date');
-    if (error) return { error: 'events_lookup_failed' };
-    const events = (data || []).filter((e) => (e.end_date || e.start_date) >= start_date);
-    return { events };
+
+    const [seedResult, sourcesResult] = await Promise.all([
+      supabase
+        .from('events')
+        .select('name, start_date, end_date, event_time, location, category, environment, source_url, description')
+        .eq('resort_id', resort.id)
+        .lte('start_date', end_date)
+        .order('start_date'),
+      supabase
+        .from('event_sources')
+        .select('url, name')
+        .eq('resort_id', resort.id),
+    ]);
+
+    if (seedResult.error) return { error: 'events_lookup_failed' };
+
+    const seedEvents = (seedResult.data || []).filter(
+      (e) => (e.end_date || e.start_date) >= start_date
+    );
+
+    let liveEvents = [];
+    try {
+      liveEvents = await fetchLiveEventsFor({
+        sources: sourcesResult.data || [],
+        start_date,
+        end_date,
+        cache: LIVE_EVENTS_CACHE,
+      });
+    } catch (e) {
+      console.warn('[get_events] live fetch threw — falling back to seed only:', e.message);
+    }
+
+    const seen = new Set(seedEvents.map((e) => `${e.name}|${e.start_date}`));
+    const merged = [...seedEvents];
+    for (const ev of liveEvents) {
+      const key = `${ev.name}|${ev.start_date}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(ev);
+    }
+    merged.sort((a, b) => (a.start_date < b.start_date ? -1 : a.start_date > b.start_date ? 1 : 0));
+
+    return { events: merged };
   },
 
   async get_weather({ resort_slug, start_date, end_date }) {
