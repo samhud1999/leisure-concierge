@@ -81,6 +81,39 @@
     font-size: var(--fs-small);
     color: var(--racv-muted);
   }
+  .hero {
+    position: relative;
+    height: 140px;
+    background: var(--racv-navy) center/cover no-repeat url('/img/hero-resort.jpg');
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    text-align: center;
+    border-bottom: 3px solid var(--racv-accent);
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,38,100,0.55) 0%, rgba(0,38,100,0.35) 100%);
+  }
+  .hero .hero-inner {
+    position: relative; padding: 0 var(--s-4);
+  }
+  .hero h2 {
+    margin: 0;
+    font-size: var(--fs-h2);
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+  .hero p {
+    margin: var(--s-1) 0 0;
+    font-size: var(--fs-small);
+    opacity: 0.9;
+  }
+  @media (max-width: 600px) {
+    .hero { height: 110px; }
+  }
   main {
     flex: 1;
     overflow-y: auto;
@@ -208,6 +241,13 @@
       <p>Your personalised stay, planned around you.</p>
     </div>
   </header>
+
+  <section class="hero" aria-label="Welcome">
+    <div class="hero-inner">
+      <h2>Plan your RACV resort stay</h2>
+      <p>Five-star, day-by-day, built around you.</p>
+    </div>
+  </section>
 
   <main id="thread"></main>
 

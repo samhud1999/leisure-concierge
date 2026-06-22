@@ -150,3 +150,13 @@ the search terms `"coastal resort Australia"`, `"luxury hotel ocean view"`, or
 `"Great Ocean Road Victoria"` — the API endpoint is
 `https://source.unsplash.com/1600x900/?coastal+resort+australia` for
 development placeholders.
+
+### Hero image (Task 6)
+
+- **File:** `public/img/hero-resort.jpg`
+- **Dimensions:** 1920×600px, JPEG, ~156 KB
+- **Source:** Unsplash — `https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80&fit=crop&h=600`
+- **Unsplash photo page:** `https://unsplash.com/photos/1506905925346-21bda4d32df4`
+- **Photographer:** Markus Spiske (@markusspiske on Unsplash)
+- **Licence:** Unsplash Licence (free for commercial and personal use; no attribution required, but credited here for provenance)
+- **Note:** Development/PoC placeholder only. Replace with official RACV resort photography before any production use.
