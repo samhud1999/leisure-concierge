@@ -228,6 +228,22 @@
     color: var(--racv-muted);
     text-align: center;
   }
+  @media (max-width: 640px) {
+    header { padding: var(--s-2) var(--s-3); gap: var(--s-2); }
+    header .brand img { height: 26px; }
+    header .brand-divider { height: 22px; }
+    header h1 { font-size: 14px; }
+    header p { display: none; }
+    main { padding: var(--s-3); }
+    .bubble { max-width: 88%; padding: var(--s-2) var(--s-3); font-size: 14.5px; }
+    .composer { gap: var(--s-1); }
+    textarea { padding: var(--s-2) var(--s-3); font-size: 14.5px; }
+    button { padding: var(--s-2) var(--s-3); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    main { scroll-behavior: auto; }
+    textarea, button { transition: none; }
+  }
 </style>
 </head>
 <body>
@@ -249,7 +265,7 @@
     </div>
   </section>
 
-  <main id="thread"></main>
+  <main id="thread" role="log" aria-live="polite" aria-label="Conversation"></main>
 
   <footer>
     <div class="composer">
