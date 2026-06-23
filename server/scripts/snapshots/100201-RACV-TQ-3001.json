@@ -1,0 +1,226 @@
+{
+  "version": 1,
+  "updated_at": "2026-06-23T03:42:01.017Z",
+  "booking_id": "RACV-TQ-3001",
+  "token": "9tfp8IwjDBsw",
+  "member": {
+    "first_name": "Eleanor",
+    "member_number": "100201"
+  },
+  "stay": {
+    "check_in": "2026-06-25",
+    "check_out": "2026-06-28",
+    "nights": 3,
+    "room_type": "Suite",
+    "party_size": 2,
+    "add_ons": [
+      "One Spa package"
+    ]
+  },
+  "resort": {
+    "slug": "torquay",
+    "name": "RACV Torquay Resort",
+    "town": "Torquay",
+    "region": "Great Ocean Road / Surf Coast",
+    "hero_image": "/img/resorts/torquay.jpg",
+    "summary": "Contemporary 5-star coastal resort at the start of the Great Ocean Road and the home of Australian surfing, with rooms over a links golf course or the Bass Strait coastline."
+  },
+  "preferences": {
+    "party_kind": "couple",
+    "dietary": null,
+    "pace": "relaxed",
+    "interests": [
+      "spa",
+      "golf",
+      "coastal",
+      "nature"
+    ]
+  },
+  "summary": {
+    "highlights": [
+      "2 spa treatments",
+      "Torquay Market · Day 3",
+      "3 dining experiences",
+      "Mostly fair weather"
+    ]
+  },
+  "days": [
+    {
+      "id": "day-1",
+      "date": "2026-06-25",
+      "label": "Day 1",
+      "weather": {
+        "condition": "Drizzle",
+        "temp_max_c": 13.5,
+        "temp_min_c": 10.3,
+        "precip_pct": 14,
+        "precip_mm": 1
+      },
+      "blocks": [
+        {
+          "id": "blk-101",
+          "kind": "arrival",
+          "time_of_day": "morning",
+          "icon": "⬇️",
+          "title": "Arrival at Resort",
+          "description": "Check-in to your suite. Relax in the spa bath.",
+          "venue": "RACV Torquay Resort",
+          "source_url": "",
+          "pinned": false
+        },
+        {
+          "id": "blk-102",
+          "kind": "spa",
+          "time_of_day": "afternoon",
+          "icon": "♨️",
+          "title": "Spa Experience",
+          "description": "Relax in the thermal stone room and sauna.",
+          "venue": "One Spa",
+          "source_url": "",
+          "pinned": true
+        }
+      ]
+    },
+    {
+      "id": "day-2",
+      "date": "2026-06-26",
+      "label": "Day 2",
+      "weather": {
+        "condition": "Light drizzle",
+        "temp_max_c": 13.1,
+        "temp_min_c": 8.9,
+        "precip_pct": 4,
+        "precip_mm": 0.2
+      },
+      "blocks": [
+        {
+          "id": "blk-103",
+          "kind": "spa",
+          "time_of_day": "morning",
+          "icon": "🧖",
+          "title": "Spa Treatment",
+          "description": "Enjoy a personalised massage or facial.",
+          "venue": "One Spa",
+          "source_url": "",
+          "pinned": true
+        },
+        {
+          "id": "blk-104",
+          "kind": "free",
+          "time_of_day": "afternoon",
+          "icon": "🏊",
+          "title": "Indoor Pool",
+          "description": "Swim laps in the heated pool.",
+          "venue": "RACV Torquay Resort",
+          "source_url": "",
+          "pinned": false
+        }
+      ]
+    },
+    {
+      "id": "day-3",
+      "date": "2026-06-27",
+      "label": "Day 3",
+      "weather": {
+        "condition": "Overcast",
+        "temp_max_c": 12,
+        "temp_min_c": 8.6,
+        "precip_pct": 2,
+        "precip_mm": 0
+      },
+      "blocks": [
+        {
+          "id": "blk-105",
+          "kind": "dining",
+          "time_of_day": "morning",
+          "icon": "☕",
+          "title": "Harding's Breakfast",
+          "description": "Light breakfast by the window.",
+          "venue": "Harding's Lounge",
+          "source_url": "",
+          "pinned": false
+        },
+        {
+          "id": "blk-106",
+          "kind": "activity",
+          "time_of_day": "midday",
+          "icon": "⛳",
+          "title": "Golf on the Links",
+          "description": "18-hole round at the Ogilvy Clayton design.",
+          "venue": "Links Golf Course",
+          "source_url": "",
+          "pinned": false
+        },
+        {
+          "id": "blk-107",
+          "kind": "event",
+          "time_of_day": "afternoon",
+          "icon": "🧺",
+          "title": "Torquay Market",
+          "description": "Browse local produce and crafts.",
+          "venue": "Surf Coast Shire offices",
+          "source_url": "https://surfcoast.vic.gov.au",
+          "pinned": true
+        },
+        {
+          "id": "blk-108",
+          "kind": "dining",
+          "time_of_day": "evening",
+          "icon": "🍽️",
+          "title": "Dinner at Number One",
+          "description": "Modern Australian dinner.",
+          "venue": "Number One Restaurant",
+          "source_url": "",
+          "pinned": false
+        }
+      ]
+    },
+    {
+      "id": "day-4",
+      "date": "2026-06-28",
+      "label": "Day 4",
+      "weather": {
+        "condition": "Light drizzle",
+        "temp_max_c": 13.4,
+        "temp_min_c": 7.8,
+        "precip_pct": 16,
+        "precip_mm": 0.6
+      },
+      "blocks": [
+        {
+          "id": "blk-109",
+          "kind": "dining",
+          "time_of_day": "morning",
+          "icon": "☕",
+          "title": "Harding's Morning Tea",
+          "description": "Tea and cake with coastal views.",
+          "venue": "Harding's Lounge",
+          "source_url": "",
+          "pinned": true
+        },
+        {
+          "id": "blk-110",
+          "kind": "activity",
+          "time_of_day": "afternoon",
+          "icon": "🥾",
+          "title": "Surf Coast Walk",
+          "description": "Scenic clifftop coastal trail.",
+          "venue": "Torquay Foreshore",
+          "source_url": "",
+          "pinned": false
+        },
+        {
+          "id": "blk-111",
+          "kind": "departure",
+          "time_of_day": "evening",
+          "icon": "🚗",
+          "title": "Departure",
+          "description": "Check-out and farewell.",
+          "venue": "RACV Torquay Resort",
+          "source_url": "",
+          "pinned": false
+        }
+      ]
+    }
+  ]
+}
