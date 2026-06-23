@@ -78,16 +78,27 @@ function seasonName(dateStr) {
 }
 
 // --- Bootstrap router ------------------------------------------------------
+let chatStarted = false;
+
 if (!state || state.status === 'pending' || Object.keys(state).length === 0) {
-  renderLoadingShell();
+  document.body.classList.add('is-loading');
+  renderLoadingShell(state?.preview);
   triggerGenerate();
 } else if (state.status === 'generation_failed') {
+  document.body.classList.add('is-loading');
   renderErrorShell(state.last_error);
 } else {
   renderItinerary(state);
+  startChat();
 }
-renderChatPanel(state);
 setupMobileChatToggle();
+
+function startChat() {
+  if (chatStarted) return;
+  chatStarted = true;
+  document.body.classList.remove('is-loading');
+  renderChatPanel(state);
+}
 
 // --- Mobile chat popup wiring ---------------------------------------------
 // On mobile (≤768px) the chat pane becomes a floating bottom sheet.
@@ -344,27 +355,54 @@ async function refetchItinerary(sinceVersion) {
   }
 }
 
-function renderLoadingShell() {
+function renderLoadingShell(preview) {
+  const p = preview || {};
+  const resortName = p.resort?.name || 'your stay';
+  const resortLine = p.resort?.town
+    ? `${escapeHtml(p.resort.town)}${p.resort.region ? ', ' + escapeHtml(p.resort.region) : ''}`
+    : '';
+  const firstName = p.member?.first_name || '';
+  const stay = p.stay || {};
+  const nightsLabel = stay.nights ? `${stay.nights} night${stay.nights === 1 ? '' : 's'}` : '';
+  const dateLine = stay.check_in
+    ? `${escapeHtml(fmtDateShort(stay.check_in))} to ${escapeHtml(fmtDateShort(stay.check_out))}${nightsLabel ? ' · ' + nightsLabel : ''}`
+    : '';
+  const partyLine = stay.party_size
+    ? `${escapeHtml(stay.room_type || 'Stay')} for ${stay.party_size}`
+    : '';
+
   $itin.innerHTML = `
-    <div class="loading-wrap">
-      <h2>Building your stay</h2>
+    <header class="art-hero loading-hero">
+      <p class="kicker">${firstName ? 'Hello, ' + escapeHtml(firstName) : 'Welcome'}</p>
+      <h1>${escapeHtml(resortName)}</h1>
+      ${resortLine ? `<p class="sub">${resortLine}</p>` : ''}
+      ${(dateLine || partyLine) ? `
+        <div class="meta-row">
+          ${dateLine ? `<span class="art-chip">${ICONS.calendar}<span>${dateLine}</span></span>` : ''}
+          ${partyLine ? `<span class="art-chip">${ICONS.bed}<span>${partyLine}</span></span>` : ''}
+        </div>` : ''}
+    </header>
+
+    <div class="loading-card">
+      <p class="loading-headline">Crafting your day-by-day plan</p>
       <div class="shimmer"></div>
       <ul class="steps" id="steps">
         <li id="step-1" class="active">Pulling your booking</li>
-        <li id="step-2" class="pending">Checking the weather</li>
-        <li id="step-3" class="pending">Finding local experiences</li>
-        <li id="step-4" class="pending">Building your day-by-day plan</li>
+        <li id="step-2" class="pending">Checking the weather forecast</li>
+        <li id="step-3" class="pending">Finding local experiences and events</li>
+        <li id="step-4" class="pending">Composing your itinerary</li>
       </ul>
-      <p style="color:var(--racv-muted)">About 30 to 60 seconds. Hold tight. We only do this once.</p>
+      <p class="loading-time">A fresh itinerary takes about 60 to 90 seconds. We only do this once. Every visit after this is instant.</p>
     </div>`;
+
   const advance = (from, to) => {
     const f = document.getElementById(`step-${from}`); const t = document.getElementById(`step-${to}`);
     if (f) { f.classList.remove('active'); f.classList.add('done'); }
     if (t) { t.classList.remove('pending'); t.classList.add('active'); }
   };
-  setTimeout(() => advance(1, 2), 4000);
-  setTimeout(() => advance(2, 3), 12000);
-  setTimeout(() => advance(3, 4), 28000);
+  setTimeout(() => advance(1, 2), 6000);
+  setTimeout(() => advance(2, 3), 20000);
+  setTimeout(() => advance(3, 4), 45000);
 }
 
 function renderErrorShell(lastError) {
@@ -390,6 +428,7 @@ async function triggerGenerate() {
     }
     const data = await r.json();
     renderItinerary(data.itinerary);
+    startChat();
   } catch (e) {
     renderErrorShell(e.message);
   }
