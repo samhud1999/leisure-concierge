@@ -65,8 +65,8 @@ Backend server (Node/Express)
 2. Open `db/seed.sql`, copy all of it, paste, and **Run**.
 3. Click **+ New query** again, open `db/seed_docs.sql` (the 10 local-area
    guides), copy all of it, paste, and **Run**.
-4. To confirm, run: `select name, town, state from resorts;` — you should see the
-   RACV properties, and `select count(*) from internal_docs;` should return 10.
+4. Click **+ New query** again, open `db/v2_itineraries.sql` (the V2 itineraries table + pre-issued tokens), copy all of it, paste, and **Run**.
+5. To confirm V2, run: `select count(*) from itineraries;` — you should see 16 (matches the booking count).
 
 ### Step 4 — Get your keys (I need these)
 1. In the left sidebar go to **Project Settings** (gear icon) → **API**.
