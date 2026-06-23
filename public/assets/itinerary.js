@@ -12,7 +12,7 @@ if (!state || state.status === 'pending' || Object.keys(state).length === 0) {
 } else {
   renderItinerary(state);
 }
-renderChatPlaceholder();
+renderChatPanel(state);
 
 // --- Renderers ---
 function renderItinerary(doc) {
@@ -133,8 +133,36 @@ function renderToolbar(doc) {
   return el;
 }
 
-function renderChatPlaceholder() {
-  $chat.innerHTML = `<div class="chat-placeholder">Chat refinement arrives in Phase 4. The itinerary view is read-only for now.</div>`;
+async function renderChatPanel(initial) {
+  const { initChat } = await import('./chat.js');
+  const m = location.pathname.match(/^\/i\/([^/]+)/);
+  if (!m) return;
+  initChat({
+    token: m[1],
+    onUpdate: ({ version }) => refetchItinerary(version),
+  });
+}
+
+async function refetchItinerary(sinceVersion) {
+  const m = location.pathname.match(/^\/i\/([^/]+)/);
+  if (!m) return;
+  const token = m[1];
+  // Try a few times — chat tools and DB write may not have fully landed.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const r = await fetch(`/api/itinerary/${token}?since=${(sinceVersion ?? 1) - 1}`);
+    if (r.status === 204) { await new Promise(r2 => setTimeout(r2, 300)); continue; }
+    if (r.ok) {
+      const data = await r.json();
+      if (data.itinerary && data.itinerary.days) {
+        renderItinerary(data.itinerary);
+        // Flash changed blocks (best effort — flash anything tagged data-block-id)
+        document.querySelectorAll('[data-block-id]').forEach(b => b.classList.add('changed'));
+        setTimeout(() => document.querySelectorAll('.changed').forEach(b => b.classList.remove('changed')), 1300);
+        return;
+      }
+    }
+    await new Promise(r2 => setTimeout(r2, 400));
+  }
 }
 
 function renderLoadingShell() {
