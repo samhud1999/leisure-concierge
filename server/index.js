@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { buildSystemPrompt } from './systemPrompt.js';
+import { mountItineraryApi } from './routes/itineraryApi.js';
 import { fetchLiveEventsFor, CACHE as LIVE_EVENTS_CACHE } from './liveEvents/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -317,6 +318,8 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
+
+mountItineraryApi(app, { supabase, anthropic, model: ZAI_MODEL });
 
 app.post('/api/chat', async (req, res) => {
   try {
