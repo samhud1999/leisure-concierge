@@ -8,6 +8,48 @@
 
 ---
 
+## 0. Access the running PoC
+
+> The host URL is **`{BASE}`**. While the PoC is running locally on the author's machine, `{BASE}` is `http://localhost:3000`. Once deployed to Render (one-click via the committed `render.yaml`), `{BASE}` becomes the public Render URL (e.g. `https://leisure-concierge.onrender.com`). Replace `{BASE}` below with whichever is current.
+
+### Two ways in
+
+| Path | Example | Notes |
+|---|---|---|
+| **Primary — deep link** | `{BASE}/i/9tfp8IwjDBsw` | One URL per booking. No login screen. Mirrors the production flow where the link arrives in the booking confirmation email. |
+| **Fallback — validation form** | `{BASE}/` | Member number + surname. Resolves to the same `/i/<token>` URL. The validation here is **soft**, suitable for the demo only. Production will use the Mulesoft Validation API and/or deep-link-as-validation (see §11 + §12). |
+
+### Live demo links
+
+11 booking demos across 7 RACV resorts. Two are pre-built (`ready` — open and they render instantly). Nine are `pending` (first visit triggers a fresh ~60-90 s `glm-4.7` build; cached forever after that).
+
+| Guest | Member # | Surname (for fallback) | Resort | Stay | Status | Deep link |
+|---|---|---|---|---|---|---|
+| Eleanor Whitman | `100201` | Whitman | RACV Torquay Resort | 25–28 Jun | ✅ ready | `{BASE}/i/9tfp8IwjDBsw` |
+| Andre Kaplan | `100301` | Kaplan | RACV Cape Schanck Resort | 7–9 Jul | ✅ ready | `{BASE}/i/Aq2m5B3oaLld` |
+| Rohan Patel | `100204` | Patel | RACV Torquay Resort | 2–5 Jul | ⏳ pending | `{BASE}/i/lE6pAh86WOfS` |
+| Freya Andersson | `100214` | Andersson | RACV Hobart | 22–25 Jun | ⏳ pending | `{BASE}/i/si7cDnZNN3Uo` |
+| Freya Andersson | `100214` | Andersson | RACV Cape Schanck Resort | 26–29 Jun | ⏳ pending | `{BASE}/i/ZnlyXMwq4TG6` |
+| Natasha Sokolov | `100302` | Sokolov | RACV Healesville Country Club | 10–13 Jul | ⏳ pending | `{BASE}/i/4fxVoKhjeSH_` |
+| Craig Patel | `100303` | Patel | RACV Inverloch Resort | 18–22 Jul | ⏳ pending | `{BASE}/i/Lt0ZjH6hHDsb` |
+| Gavin Mitchell | `100304` | Mitchell | RACV Noosa Resort | 25–30 Jul | ⏳ pending | `{BASE}/i/_XJay1D9u9mc` |
+| Chris Park | `100305` | Park | RACV Royal Pines Resort | 3–5 Aug | ⏳ pending | `{BASE}/i/v-PoqaQCPPMB` |
+| Jenny Liu | `100306` | Liu | RACV Goldfields Resort | 7–10 Aug | ⏳ pending | `{BASE}/i/aFZS62Dt-PzH` |
+| Bethany Stone | `100307` | Stone | RACV Torquay Resort | 15–18 Aug | ⏳ pending | `{BASE}/i/IEUeJbh1P2ov` |
+
+### Recommended demo path
+
+1. **Open `{BASE}/i/9tfp8IwjDBsw`** (Eleanor Whitman, RACV Torquay, pre-built). The artifact renders in under a second. Walk a stakeholder through: branded hero, weather strip, day-by-day timeline, kind-coloured blocks.
+2. **Refine via chat**: tap a suggestion chip ("Add a dinner reservation") or type "I'm vegetarian, please update". Watch a block change and briefly flash yellow.
+3. **Pin something**: tap the Pin button on any block to demonstrate the immovable flag.
+4. **On a phone**, open the same URL. Show the floating yellow chat button (FAB) and the bottom-sheet behaviour.
+5. **Show the fallback path**: open `{BASE}/` and enter `100201` / `Whitman`. Land on the same itinerary.
+6. **Open a pending link** (e.g. Bethany Stone) to show the branded loading shell while a fresh build runs. Be honest about the 60-90 s wait — the production version pre-builds at booking-confirmation time so this wait disappears for real members.
+
+> Each token in the table is single-purpose and tied to one booking. Anyone with the URL can read and mutate that single demo itinerary. This is acceptable for an internal alignment demo. It is **not** the production validation model — see §11 for the Mulesoft + deep-link-delivery approach.
+
+---
+
 ## 1. Why we are doing this
 
 RACV members planning leisure trips today face the same fragmented experience as everyone else:
@@ -20,7 +62,9 @@ RACV members planning leisure trips today face the same fragmented experience as
 
 The opportunity is to deliver, **at the point of booking confirmation**, a personalised day-by-day plan that already does this synthesis. The plan should reflect the member's actual booking (resort, dates, party, room), be sensitive to the weather forecast, surface real local events that overlap the stay, and remain editable by the member up to and during the stay itself.
 
-This PoC demonstrates that the capability is real, the experience is achievable with current AI tooling at acceptable latency and cost, and the security posture (no PII leakage to the LLM, no shared-state risk across members) can be designed in from day one.
+This PoC demonstrates that the capability is real, the experience is achievable with current AI tooling at acceptable latency and cost, and the data-handling shape (no PII flowing into the LLM context, single-doc-per-booking with version control) is sane.
+
+> ⚠️ **The PoC is not a secure solution.** Member validation is a thin member-number + surname check against the seed data, and the deep-link tokens have no expiry, no signing, no revocation. The production system will need a proper uplift here — see §11 for what the Azure version brings in.
 
 ```mermaid
 flowchart LR
@@ -119,7 +163,7 @@ graph TB
 | Style enforcement | ✅ | Prompt rules: no em dashes, no AI-speak filler |
 | Sensitive PII never leaks | ✅ | Column whitelists; nothing surname/email/phone reaches the artifact |
 | Pre-issued shareable URLs | ✅ | One token per existing booking; URL-safe |
-| Authenticated mutations | ✅ | All mutations bound to URL token |
+| Mutations bound to validated session | ✅ | Every mutation is scoped to the URL token. Not cryptographically validated in the PoC — that lift comes in Azure. |
 | Multi-member, multi-booking demo | ✅ | 23 seeded bookings across 16 members, 10 demo members ready to share |
 | Live event-source freshness cache | ✅ | 12-hour in-process TTL |
 | **Out of scope for PoC** | | |
@@ -358,7 +402,7 @@ Grouped by persona. Each story has a one-line acceptance criterion drawn from th
 | US-1.7 | As a member, I want variety across my stay, so I don't visit the same restaurant twice. | Prompt rules forbid a named venue from appearing more than once per stay. |
 | US-1.8 | As a member, I want the chat to suggest sensible next steps, so I don't have to compose every message. | Every agent reply carries a `ui_hint`; frontend renders chips/radio/multi/form. |
 | US-1.9 | As a member on my phone, I don't want the chat competing with the itinerary for space. | Mobile shows the chat as a slide-up sheet behind a FAB. |
-| US-1.10 | As a member, I do not want a typo at login to reveal which field was wrong. | 401 body is generic; no surname/member text. |
+| US-1.10 | As a member, I do not want a typo at the validation step to reveal which field was wrong. | 401 body is generic; no surname/member text. |
 
 ### Secondary — RACV ops / demo presenter
 
@@ -405,7 +449,8 @@ Honesty matters here. The PoC made some choices that should not survive the Azur
 |---|---|---|
 | **In-process 12-hour cache for live events** | Singleton in Node memory; evaporates on dyno restart; doesn't scale to multi-instance. | Use Azure Cache for Redis. Same TTL, same code shape, swap the impl. |
 | **No rate limiting anywhere** | The PoC trusted its low-traffic demo footprint. Any public deploy would burn LLM cost on a bot. | Per-token and per-IP limits at the API Gateway / APIM layer. |
-| **Tokens are de-facto credentials with no expiry or rotation** | Acceptable in a closed demo; production-unsafe. | Tokens issued at booking-confirmation, signed/sealed, scoped to a single booking, expiring 30 days after check-out. |
+| **Member validation is a thin member-number + surname check** | This is **not authentication**, just a soft validation against seed data so the demo is usable. There is no SSO, no second factor, no proof of liveness. | A real validation layer: either a **Mulesoft Validation API** integration that confirms member status on first deep-link open, and/or **deep-link-as-validation** where the link is delivered to a channel RACV already trusts (email/SMS to a verified address). Either path lets us promote the URL-token claim into a validated session. See §10 + §12. |
+| **Tokens are de-facto credentials with no expiry, no signing, no rotation** | Acceptable in a closed demo; production-unsafe. | Tokens issued at booking-confirmation, signed/sealed, scoped to a single booking, expiring 30 days after check-out. |
 | **`generation_failed` only retried via user action** | A transient Z.ai blip turned into a permanent error state until the user clicked "Try again". | Background retry queue with exponential backoff. Member sees the loading shell, not the error. |
 | **Live event sources are hardcoded to three Surf-Coast sites** | Demos one resort cleanly, but not generalisable. | Per-resort allow-list table; scheduled crawler; quality scoring per source. |
 | **Long-stay code paths only verified by code review** | No seeded booking >4 nights, so the week-grouping and sticky day-jump nav weren't smoke-tested with real data. | Seed at least one ≥10-night booking; add it to the smoke matrix. |
@@ -413,7 +458,7 @@ Honesty matters here. The PoC made some choices that should not survive the Azur
 | **The first visit pays the full LLM cost** | 60-90s of "Building your stay" the first time anyone opens a token. | Pre-generate at booking-confirmation time; the very first member visit hits the cache. Trades a small unused-itinerary cost for a much better first impression. |
 | **No structured observability** | `console.warn` and Render log tail. Hard to triage when something breaks. | Application Insights or equivalent. Per-call LLM cost attribution per token. |
 | **No accessibility audit** | Semantic HTML and ARIA on the key controls, but no Lighthouse or screen-reader pass. | Lighthouse a11y ≥ 95 as a release gate. Focus management on the mobile chat sheet. |
-| **No real RACV identity integration** | Member number + surname is a thin gate. | RACV SSO integration; tokens become bookmarks, identity comes from session. |
+| **No real RACV identity integration** | Member number + surname is a thin validation gate, suitable for a demo. | **Mulesoft Validation API** to confirm member status on first deep-link open; deep-link delivery to a verified channel becomes the validation envelope. Tokens become bookmarks; validated member identity is established on first use. |
 
 ---
 
@@ -444,6 +489,7 @@ graph LR
     A8[Azure API Management]
     A9[Application Insights]
     A10[Front Door + AEM]
+    AV[Mulesoft Validation API<br/>+ deep-link delivery]
   end
 
   P1 -.same code.-> A1
@@ -475,10 +521,10 @@ graph LR
 
 ### What is net new in Azure
 
+- **Member validation.** Replace the PoC's member-number + surname check with a **Mulesoft Validation API** call. The deep link arriving in the member's inbox is the validation envelope; the Mulesoft call confirms the member's status (active membership, booking ownership) before any itinerary work begins.
 - **Booking integration.** Wire the `bookings` table to RACV's real booking system; itineraries pre-issued automatically on confirmation.
-- **Email/SMS delivery.** Trigger a delivery containing the `/i/<token>` URL on booking confirmation.
+- **Deep-link delivery channel.** Send the `/i/<token>` URL to the member via the channel RACV already trusts (email and/or SMS to a verified address). Link possession becomes part of the validation chain.
 - **APIM rate limits and per-token policies.** Production-grade traffic shaping.
-- **AAD / RACV SSO.** Replace the surname-gate login with real identity.
 - **Pre-stay regeneration cron.** Refresh the itinerary 14 days before check-in to pick up live weather.
 - **Observability: Application Insights, cost dashboards, alerting.**
 
@@ -502,11 +548,11 @@ The PoC has been intentionally built so the itinerary doc is delivered as JSON t
 These are the things we want a decision on before the Azure build starts:
 
 1. **Token issuance timing.** Is the token issued at booking confirmation, or on demand at first email-click? (PoC issues at migration time; production should pick one.)
-2. **Token security model.** Are tokens shareable across guests on the same booking, or scoped to one member? Do we add an expiry?
-3. **Pre-stay regeneration cadence.** Is "regenerate 14 days before check-in" the right window? Or also "the morning of check-in" for last-minute weather?
-4. **AEM hosting decision.** Headless AEM + standalone app (lower lift), or AEM-component-ised itinerary (deeper brand integration)?
-5. **LLM provider.** Azure OpenAI for compliance + cost predictability, or Bedrock for multi-model flexibility?
-6. **Member identity.** Real RACV SSO at the front door, or the lighter member-number gate the PoC uses, until SSO is ready?
+2. **Member validation in production.** Two viable paths: (a) **Mulesoft Validation API** called from the backend when the deep-link is opened, exchanging the URL token + light context for a validated member session; or (b) **deep-link-as-validation**, where the link is delivered to the member through a channel RACV already trusts (email/SMS to a verified address) and the link's possession is itself the validation event. Most likely: both — deep-link delivery as the validation envelope, with Mulesoft confirming the member status the first time the link is opened.
+3. **Token model.** Once we have a validation strategy, decide: are tokens shareable across guests on the same booking, or strictly one-per-member? Expiry window relative to check-out?
+4. **Pre-stay regeneration cadence.** Is "regenerate 14 days before check-in" the right window? Or also "the morning of check-in" for last-minute weather?
+5. **AEM hosting decision.** Headless AEM + standalone app (lower lift), or AEM-component-ised itinerary (deeper brand integration)?
+6. **LLM provider.** Azure OpenAI for compliance + cost predictability, or Bedrock for multi-model flexibility?
 7. **Operational ownership.** Who owns the prompt evolution? Who has the access to add/remove allow-listed event sources? Who reviews cost per booking?
 8. **Resort imagery.** Manual curation per resort (PoC approach), or pulled from the RACV digital asset library? Latter would require a CDN-pattern integration.
 9. **Multi-language.** Australian English only for MVP, or design for i18n from day one?

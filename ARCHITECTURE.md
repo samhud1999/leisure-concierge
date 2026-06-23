@@ -332,7 +332,9 @@ Swap/Remove: emits an inline-action CustomEvent the chat panel listens for;
 
 ---
 
-## 6. Security model
+## 6. Validation + data-handling model
+
+> The PoC is **not** a secure solution. It does **not** authenticate members — it lightly validates a self-declared member-number + surname against seed data. The production system will replace this with a real validation layer: most likely a Mulesoft Validation API integration backed by a deep-link envelope delivered to a channel RACV already trusts (email/SMS to a verified address). The rules below describe what the PoC **does** enforce — they are the floor, not the ceiling.
 
 Everything below is enforced by code, not by convention.
 
@@ -341,17 +343,26 @@ Everything below is enforced by code, not by convention.
 | **PII whitelisting at the boundary** | `MEMBER_SAFE = 'id, first_name, member_number, preferences'` and `BOOKING_SAFE = ...` (no `other_guest_names`) in `readonlyHandlers.js`. Any SELECT against `members` or `bookings` uses these constants. |
 | **PII excluded from the itinerary doc** | The generator's `assembleDoc` only copies `first_name` and `member_number` into `member`. No code path puts surname/email/phone into the doc. The committed snapshot at `server/scripts/snapshots/100201-RACV-TQ-3001.json` was grep-verified clean. |
 | **Service role key stays server-side** | `.gitignore` excludes `server/.env`. Render's `render.yaml` uses `sync: false` for the secret so it lives in the dashboard, not in git. |
-| **Generic 401 on login mismatch** | `routes/login.js` returns `{ error: 'no_match' }` for any failure mode. Unit test asserts no `/surname/i` or `/member/i` substring in the response body. |
+| **Generic 401 on validation mismatch** | `routes/login.js` returns `{ error: 'no_match' }` for any failure mode. Unit test asserts no `/surname/i` or `/member/i` substring in the response body. |
 | **Cross-itinerary tool calls** | The chat agent's mutation tools resolve the itinerary by token (the URL); the agent has no way to mutate a different member's itinerary even if it tried, because the route handler binds the token at the request level. |
 | **Pinned blocks resist mutation** | `swapActivity` and `removeActivity` throw with messages matching `/pinned/i`. The agent's system prompt also instructs it to refuse. |
 | **XSS in inlined state** | `itineraryPage.js` escapes `<` as `<` in the JSON inlined into `<script id="state">`. Every dynamic string in `itinerary.js` and `chat.js` goes through `escapeHtml` or `escapeAttr` before HTML interpolation. |
 | **HTML-escape JSON-from-LLM** | Block titles, descriptions, venues are user-displayable strings written by the model. They're escaped on render. The schema validator also bounds `title ≤ 40 chars`, `description ≤ 140 chars` to limit blast radius. |
 
-### Token threat model (known PoC weakness)
+### Token model (known PoC weakness)
 
-Tokens are 12-character URL-safe base64 strings with no expiry, no rotation, and no revocation. They are de-facto credentials. Anyone with the URL can read and mutate that one member's itinerary. The token is also embedded in the page HTML for client-side use, which means anyone who can view-source the page can extract it.
+Tokens are 12-character URL-safe base64 strings with no expiry, no signing, no revocation. They are de-facto credentials. Anyone with the URL can read and mutate that one member's itinerary. The token is also embedded in the page HTML for client-side use, which means anyone who can view-source the page can extract it.
 
-Acceptable for a PoC because: (a) tokens are random enough to resist brute force in any reasonable demo time window, (b) every itinerary is bound to a single booking — compromise of one token does not propagate, (c) the production form of this would issue tokens at booking-confirmation time and deliver via the member's existing communication channel (email/SMS).
+Acceptable for a PoC because: (a) tokens are random enough to resist brute force in any reasonable demo time window, (b) every itinerary is bound to a single booking — compromise of one token does not propagate, (c) the production validation model will be different (see below) — tokens become an envelope, not a credential.
+
+### What the production validation model looks like
+
+Two strategies, likely combined:
+
+1. **Mulesoft Validation API.** When a `/i/<token>` request lands, the backend calls Mulesoft to confirm the member's status (active member, owns the booking the token points to). The Mulesoft call returns a short-lived validated session; the URL token is downgraded from "credential" to "claim that needs Mulesoft to validate."
+2. **Deep-link delivery as the validation envelope.** The `/i/<token>` URL is delivered to the member through a channel RACV already trusts — typically the same email/SMS path the booking confirmation uses. Possession of the link is then treated as one factor of validation. Combined with strategy 1, the Mulesoft call is what promotes possession into trust.
+
+The PoC's member-number + surname fallback at `/api/login` exists only because the PoC has no booking-confirmation channel to deliver links through. In production, the fallback is replaced by a "resend my itinerary link" flow that reuses the trusted channel.
 
 ### Other PoC concessions
 
@@ -456,10 +467,10 @@ Every committed change went through a per-task reviewer (per-task subagent under
 
 | Area | PoC reality | Production lift |
 |---|---|---|
-| **Token security** | 12-char base64, no expiry, embedded in page HTML | Issue at booking-confirmation time, deliver via email/SMS, set expiry to check-out + 30d, HMAC-sign so the server can validate without a DB hit on a hot path |
-| **Rate limiting** | None | `express-rate-limit` per-IP on `/generate` and `/chat`; per-token cooldowns on `/regenerate` |
+| **Member validation** | Soft member-number + surname check on `/api/login`. Not authentication, not cryptographic. | **Mulesoft Validation API** call on first deep-link open, validating member status + booking ownership. Deep-link delivery via the booking-confirmation channel becomes the validation envelope. |
+| **Token model** | 12-char base64, no expiry, embedded in page HTML | Tokens issued at booking-confirmation time, signed/sealed via Key Vault, scoped to a single booking, expiring at check-out + 30d |
+| **Rate limiting** | None | `express-rate-limit` per-IP on `/generate` and `/chat`; per-token cooldowns on `/regenerate`; APIM layer |
 | **CSRF / origin** | Not enforced | `Origin` header check or short-lived signed nonces on mutation routes |
-| **Auth on `/api/login`** | Member# + surname only, no second factor | OTP via the member's verified channel; existing RACV identity (SSO) integration |
 | **Live event sources** | 3 static allow-listed Torquay/Surf Coast sites | Per-resort allow-lists in DB, scheduled crawl, source-quality scoring |
 | **Resort imagery** | 10 manually-saved JPGs in `public/img/resorts/` | RACV asset CDN integration; responsive `<picture>` with mobile-optimised sources |
 | **Weather forecast horizon** | Open-Meteo ~16 days; later dates get seasonal judgement | Same data source is fine; for stays >16 days out, schedule a pre-stay regeneration cron 14 days before check-in |
