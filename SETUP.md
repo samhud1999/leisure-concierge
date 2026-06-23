@@ -118,3 +118,33 @@ I will:
 - **Privacy:** sensitive columns (email, phone, ID number, other guests' names)
   exist in the schema to be realistic, but the agent is instructed never to read
   them out. They're flagged in `schema.sql`.
+
+---
+
+## 5. Resort imagery (manual step)
+
+V2 renders a hero image per resort. Source: `racv.com.au/travel-experiences/resorts.html`. Because the page is JS-rendered, this step is **manual** — there is no automated scrape in the codebase.
+
+For each slug below, save one landscape JPG (≥ 1600×900, > 70% quality) into `public/img/resorts/<slug>.jpg`:
+
+| Slug                  | Source page                                                   |
+|-----------------------|---------------------------------------------------------------|
+| `torquay`             | https://www.racv.com.au/travel-experiences/resorts/torquay.html |
+| `cape-schanck`        | https://www.racv.com.au/travel-experiences/resorts/cape-schanck.html |
+| `healesville`         | https://www.racv.com.au/travel-experiences/resorts/healesville.html |
+| `inverloch`           | https://www.racv.com.au/travel-experiences/resorts/inverloch.html |
+| `noosa`               | https://www.racv.com.au/travel-experiences/resorts/noosa.html |
+| `royal-pines`         | https://www.racv.com.au/travel-experiences/resorts/royal-pines.html |
+| `goldfields`          | https://www.racv.com.au/travel-experiences/resorts/goldfields.html |
+| `cobram`              | https://www.racv.com.au/travel-experiences/resorts/cobram.html |
+| `hobart`              | https://www.racv.com.au/travel-experiences/resorts/hobart.html |
+| `city-club-melbourne` | https://www.racv.com.au/club/city-club-melbourne.html         |
+
+Use right-click → "Save image" on the hero photo at the top of each page. Maintain attribution in `DESIGN_NOTES.md` under "Imagery" if RACV credit is shown on the source page.
+
+Verify:
+
+```bash
+ls public/img/resorts/*.jpg | wc -l
+# expect: 10
+```
