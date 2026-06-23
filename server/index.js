@@ -57,6 +57,6 @@ mountItineraryPage(app, { supabase, publicDir: PUBLIC_DIR });
 app.get('/api/health', (_req, res) => res.json({ ok: true, model: ZAI_MODEL }));
 
 app.listen(PORT, () => {
-  console.log(`\n  RACV Concierge running:  http://localhost:${PORT}`);
+  console.log(`\n  Leisure Concierge running:  http://localhost:${PORT}`);
   console.log(`  Model: ${ZAI_MODEL} (via ${ZAI_BASE_URL})   Brand: ${RESORT_BRAND}\n`);
 });

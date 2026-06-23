@@ -1,4 +1,7 @@
-# RACV Member Concierge — Proof of Concept (V2)
+# Leisure Concierge — Proof of Concept (V2)
+
+A leisure-itinerary concierge for RACV resort members. Members deep-link to a personalised day-by-day stay plan and refine it via a chat panel.
+
 
 A standalone web app: members deep-link or log in, see a personalised day-by-day stay itinerary auto-built from their booking + preferences + weather + local events, and refine it via an adaptive-card chat panel.
 

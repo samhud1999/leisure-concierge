@@ -1,7 +1,7 @@
 {
-  "name": "racv-concierge-server",
+  "name": "leisure-concierge-server",
   "version": "1.0.0",
-  "description": "RACV Member Concierge — backend (Express + Anthropic + Supabase + Open-Meteo)",
+  "description": "Leisure Concierge — backend (Express + Anthropic + Supabase + Open-Meteo) for RACV members",
   "type": "module",
   "main": "index.js",
   "scripts": {

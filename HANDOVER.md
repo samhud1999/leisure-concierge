@@ -1,4 +1,4 @@
-# RACV Member Concierge — Engineering Handover (V2)
+# Leisure Concierge — Engineering Handover (V2)
 
 **Audience:** Claude Code (and any engineer) picking up this project.
 **Status:** V2 — itinerary-first PoC. Members open a deep link, see an auto-generated personal itinerary, and refine it via an adaptive-card chat panel.

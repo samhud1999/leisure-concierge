@@ -1,5 +1,5 @@
 // ===========================================================================
-// RACV Concierge V2 — itinerary artifact rendering
+// Leisure Concierge V2 — itinerary artifact rendering
 // Vanilla JS, no framework. Driven by an inlined JSON state in #state.
 // Uses inline SVG icons (no emojis).
 // ===========================================================================

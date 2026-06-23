@@ -1,6 +1,6 @@
 # CLAUDE.md — project context for Claude Code
 
-RACV Member Concierge **V2** (itinerary-first): a standalone web app (Node/Express + static frontend, Supabase Postgres, Z.ai GLM via the Anthropic-compatible endpoint, Open-Meteo) that builds personalised resort stay itineraries for members. Members deep-link via `/i/<token>` or log in at `/`, see an auto-generated day-by-day itinerary, and refine it via an adaptive-card chat panel.
+Leisure Concierge **V2** (itinerary-first): a standalone web app for RACV resort members (Node/Express + static frontend, Supabase Postgres, Z.ai GLM via the Anthropic-compatible endpoint, Open-Meteo) that builds personalised stay itineraries. Members deep-link via `/i/<token>` or log in at `/`, see an auto-generated day-by-day itinerary, and refine it via an adaptive-card chat panel.
 
 ## Start here
 1. Read **HANDOVER.md** in full — V2 architecture, quick start, and how the entry flow works.

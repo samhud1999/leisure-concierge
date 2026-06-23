@@ -1,4 +1,4 @@
-# RACV Member Concierge — Build & Setup Guide
+# Leisure Concierge — Build & Setup Guide
 
 This is the end-to-end process for standing up the concierge proof-of-concept:
 a **standalone web app** (chat UI + backend) backed by **Supabase** (Postgres),
@@ -49,7 +49,7 @@ Backend server (Node/Express)
 1. Go to **https://supabase.com** and sign in (or sign up — free tier is fine).
 2. Click **New project**.
 3. Fill in:
-   - **Name:** `racv-concierge`
+   - **Name:** `leisure-concierge`
    - **Database password:** generate a strong one and **save it somewhere safe**.
    - **Region:** choose **Southeast Asia (Singapore)** or **Australia (Sydney)** if offered — closest to AU.
 4. Click **Create new project** and wait ~2 minutes for it to provision.
