@@ -1,53 +1,22 @@
-# Deployment Plan — RACV Concierge PoC
+# Deployment Plan — RACV Concierge V2
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans
-> (single-engineer pace) or superpowers:subagent-driven-development. Steps use
-> checkbox (`- [ ]`) syntax for tracking.
->
-> **Sequence:** Run AFTER Part 1 + Part 2 merge. Final review verdict was
-> "Ready to merge: Yes" at commit `b07bcc9`.
+> **Updated for V2** (itinerary-first artifact at `/i/<token>` + login at `/` + chat refinement). Baseline commit `57bd550`.
 
-**Goal:** Stand up the concierge as a publicly reachable demo URL so a
-stakeholder can open it on a phone or laptop and run the §7 scenarios
-without local setup. Backend must complete multi-tool agent loops (often
-20–60 s wall-clock per assistant turn) without timing out, and must hold a
-shared in-process TTL cache for live events across requests.
+**Goal:** Stand up V2 as a publicly reachable demo URL so a stakeholder can open it on a phone or laptop, deep-link to their itinerary (or log in with member-number + surname), and refine it via the chat panel. Backend must complete the V1-itinerary build (one ~60-120 s GLM call on `glm-4.7`) and the multi-tool refinement loop (often 20–90 s per chat turn) without timing out, and must hold a shared in-process TTL cache for live events across requests.
 
-**Recommendation: Render.com free tier.** Render runs Express natively as a
-long-running process, has no per-request execution-time cap (only an idle
-shutdown after 15 min that wakes on next request ~30 s), and is one
-`render.yaml` away from a single-click deploy. Free is fine for a PoC; if
-demos can't tolerate the 30 s cold start, upgrade to Starter ($7/mo) which
-removes the sleep.
+**Recommendation: Render.com.** Render runs Express natively as a long-running process, has no per-request execution-time cap (only an idle shutdown after 15 min on free, that wakes on next request ~30 s), and is one `render.yaml` away from deploy. Free is fine for a single-stakeholder demo; for any shared link, upgrade to Starter ($7/mo) so the cold-start doesn't bite during a live walk-through.
 
 ---
 
 ## Why NOT Vercel (read this once)
 
-Vercel is great for static frontends + short serverless functions. This
-app is neither. Three blockers:
+Vercel is great for static frontends + short serverless functions. This app is neither. Three blockers:
 
-1. **Function timeout.** Hobby = 10 s. Pro = 60 s. Enterprise = 90 s. The
-   agent loop calls GLM once per assistant turn and the §7 happy path
-   (`100201` / `Whitman`) takes 5–6 turns of tool calls (`member_lookup`,
-   `get_booking`, `get_resort_knowledge`, `get_events`, `get_weather`) plus
-   the final itinerary token stream. Live measurement at commit `b07bcc9`:
-   a single greeting-then-`member_lookup` round-trip took ~14 s. A full
-   itinerary build will routinely exceed 60 s. Hobby fails fast; Pro fails
-   slow but still fails.
-2. **In-process cache evaporates.** `server/liveEvents/index.js` exports a
-   `CACHE` singleton with a 12 h TTL that lives in Node memory. Vercel
-   functions are stateless and spawn fresh per request — the cache resets
-   on every invocation, so the live-fetch deduplication the orchestrator
-   promises silently doesn't happen.
-3. **Express on Vercel is second-class.** It works (via
-   `@vercel/node` and a wrapper handler), but you give up streaming, hot
-   modules, and the dev parity the team currently has with `npm start`.
+1. **Function timeout.** Hobby = 10 s. Pro = 60 s. Enterprise = 90 s. The V1 generator is **one** GLM call with the entire context pre-loaded — measured at ~38 s on `glm-4.7-flash` (V2 Task 6 smoke); `glm-4.7` (the current default) is closer to 60-120 s. The chat refinement loop adds 5-6 tool turns on top. Hobby fails fast; Pro fails slow but still fails on the cold build.
+2. **In-process cache evaporates.** `server/liveEvents/index.js` exports a `CACHE` singleton with a 12 h TTL that lives in Node memory and is also passed into the V2 chat agent's read-handlers (`server/tools/readonlyHandlers.js`). Vercel functions are stateless and spawn fresh per request — the cache resets on every invocation, so the live-fetch deduplication silently doesn't happen.
+3. **Express on Vercel is second-class.** It works (via `@vercel/node` + a wrapper), but you give up streaming, hot modules, and the dev parity the team currently has with `npm start`. And the file-based static serving (`/img/*`, `/assets/*`, `/login.html`, `/itinerary.html`) needs to be moved onto Vercel's static CDN instead of Express, which is its own small refactor.
 
-Conclusion: **defer Vercel** until either the agent loop is restructured
-to stream over the wire (which is a separate, larger workstream) or a
-Pro plan is in hand and the §7 itinerary genuinely fits inside 60 s. For
-now, deploy to a platform that runs the Express process as-is.
+Conclusion: **defer Vercel** unless someone is prepared to restructure the agent loop for streaming AND replace the in-process cache with Vercel KV / Upstash Redis. For the PoC, deploy somewhere that runs the Express process as-is.
 
 ---
 
@@ -74,19 +43,20 @@ No application code changes are needed — the server already reads `PORT` from 
 
 ## Pre-flight: confirm the local app works
 
-Before deploying anything, prove `b07bcc9` works locally end-to-end. If any of these fail, deployment will too.
+Before deploying anything, prove the V2 build works locally end-to-end. If any of these fail, deployment will too.
 
-- [ ] **`.env` is populated.** In `server/.env` confirm `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ZAI_API_KEY` are all non-empty. `ZAI_MODEL` defaults to `glm-4.7-flash` (already set).
+- [ ] **`.env` is populated.** In `server/.env` confirm `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ZAI_API_KEY` are all non-empty. `ZAI_MODEL=glm-4.7` is the current default.
 - [ ] **Supabase tables are seeded.** In Supabase SQL Editor confirm:
   ```sql
   select count(*) from resorts;        -- 10
   select count(*) from internal_docs;  -- 10
-  select count(*) from bookings;       -- 16
+  select count(*) from bookings;       -- 23 (16 seed + 7 from v2_seed_extra_members.sql)
+  select count(*) from itineraries;    -- 23 (one row per booking, pre-issued tokens)
   ```
-  (If `member_lookup` returns `lookup_failed`, schema/seed wasn't run — see `SETUP.md`.)
-- [ ] **`npm test` passes.** `cd server && npm test` → `pass 20`.
-- [ ] **`/api/health` responds.** `npm start`, then `curl -s http://localhost:3000/api/health` → `{"ok":true,"model":"glm-4.7-flash"}`.
-- [ ] **A `/api/chat` round-trip succeeds against GLM.** From the §7 matrix, send `100201` / `Whitman` and confirm a full Torquay itinerary is produced. This proves the GLM-via-Anthropic-SDK path works against your live Z.ai key before you put it on the internet.
+  If counts are short, run the relevant SQL file from `db/` (`schema.sql` → `seed.sql` → `seed_docs.sql` → `v2_itineraries.sql` → `v2_seed_extra_members.sql`).
+- [ ] **`npm test` passes.** `cd server && npm test` → `pass 67`.
+- [ ] **`/api/health` responds.** `npm start`, then `curl -s http://localhost:3000/api/health` → `{"ok":true,"model":"glm-4.7"}`.
+- [ ] **An end-to-end V1 build succeeds against GLM.** Log in as `100201` / `Whitman`, navigate to `/i/<token>`, wait for the itinerary to render. This proves the Z.ai endpoint + Supabase + the V2 pipeline are all wired correctly before you put it on the internet. First visit takes ~60-120 s on `glm-4.7`; subsequent visits serve the cached JSON instantly.
 
 ---
 
@@ -141,7 +111,7 @@ services:
       - key: ZAI_API_KEY
         sync: false
       - key: ZAI_MODEL
-        value: glm-4.7-flash      # safe to commit — not a secret
+        value: glm-4.7            # safe to commit — not a secret. Use `glm-4.7-flash` for cheaper dev iteration.
       - key: ZAI_BASE_URL
         value: https://api.z.ai/api/anthropic
       - key: RESORT_BRAND
@@ -181,7 +151,7 @@ services:
 - [ ] **Step 5: Watch the first deploy.** The "Logs" tab will stream the startup line:
   ```
     RACV Concierge running:  http://localhost:10000
-    Model: glm-4.7-flash (via https://api.z.ai/api/anthropic)   Brand: RACV
+    Model: glm-4.7 (via https://api.z.ai/api/anthropic)   Brand: RACV
   ```
   (Render assigns its own internal port via `PORT`, hence `10000` not `3000`.)
 
@@ -198,7 +168,7 @@ The functional checklist from `HANDOVER.md §7` becomes the smoke test for the d
   ```bash
   curl -s https://racv-concierge.onrender.com/api/health
   ```
-  Expect `{"ok":true,"model":"glm-4.7-flash"}`. If `404` or `502`, check the Logs tab — usually a missing env var.
+  Expect `{"ok":true,"model":"glm-4.7"}`. If `404` or `502`, check the Logs tab — usually a missing env var.
 
 - [ ] **Step 2: Static assets.**
   - `https://racv-concierge.onrender.com/` → branded chat UI
@@ -233,13 +203,43 @@ If you're about to send the URL to anyone outside your immediate team:
 
 ---
 
-## Task 6: Operations & monitoring
+## Task 6: Pre-warm the demo itineraries (recommended)
+
+The 7 new demo bookings from `db/v2_seed_extra_members.sql` (Andre Kaplan, Natasha Sokolov, etc.) each carry a pre-issued token but their itinerary doc is empty until the first visit triggers a `glm-4.7` build (~60-120 s). Pre-warming means every shareable URL renders instantly when a stakeholder opens it.
+
+- [ ] **Step 1: Get the token list.** In Supabase SQL Editor:
+
+```sql
+SELECT m.first_name || ' ' || m.surname AS guest,
+       translate(i.token, '+/=', '-_')  AS url_safe_token
+FROM itineraries i
+JOIN members m ON m.id = i.member_id
+WHERE m.member_number IN ('100201','100204','100214','100301','100302','100303','100304','100305','100306','100307');
+```
+
+- [ ] **Step 2: Fire one `/generate` per token against your deployed URL.**
+
+```bash
+BASE="https://racv-concierge.onrender.com"   # replace with your actual deploy URL
+for TOK in tok1 tok2 tok3 tok4 tok5 tok6 tok7 tok8 tok9 tok10; do
+  echo "Warming $TOK..."
+  time curl -sf -X POST "$BASE/api/itinerary/$TOK/generate" > /dev/null
+done
+```
+
+Each call takes ~60-120 s on `glm-4.7`. Total wall-clock for 10 demos: ~15-20 minutes. Cost on Z.ai for ten builds: ~$0.30-$1 depending on context size. Acceptable for a one-off pre-warm.
+
+- [ ] **Step 3: Verify a cached itinerary serves instantly.** Once warmed, opening `/i/<token>` should render the JSON within a couple of seconds.
+
+---
+
+## Task 7: Operations & monitoring
 
 - [ ] **Step 1: Tail logs.** In the Render dashboard, the Logs tab streams stdout/stderr. Look for the live-events warnings `[liveEvents] fetch failed: ...` — these are expected for JS-rendered sources and do not indicate a problem.
 
 - [ ] **Step 2: Cold-start awareness (free tier only).** Render's free plan shuts the dyno after 15 min of no traffic. The first request after a sleep returns in ~30 s while the dyno wakes. Subsequent requests are fast. For a live demo: hit `/api/health` 30 s before showing the URL to warm the dyno. If this becomes annoying, upgrade to Starter ($7/mo).
 
-- [ ] **Step 3: Cost monitor.** Render free tier is free forever, but every chat session calls Z.ai. Watch the Z.ai dashboard (https://z.ai/manage-apikey/usage) for spend. With `glm-4.7-flash` (the cheap tier) a full §7 walkthrough is fractions of a cent; budget worry only kicks in if a bot crawls the URL.
+- [ ] **Step 3: Cost monitor.** Render free tier is free forever, but every chat session and every V1 build calls Z.ai. Watch the Z.ai dashboard (https://z.ai/manage-apikey/usage) for spend. `glm-4.7` (the current default) costs more than `glm-4.7-flash`. If a stakeholder URL leaks and a bot crawls every booking's `/i/<token>` URL, every token's first visit will trigger a fresh build. Mitigation: pre-warm the demos (Task 6 above), and consider rate-limiting `/api/itinerary/:token/generate` to once per token per 24h.
 
 ---
 
@@ -274,7 +274,7 @@ Not in scope for the PoC. Documented here only so a future engineer knows the mi
 
 The deployment is complete when:
 
-1. `https://<your-render-subdomain>.onrender.com/api/health` returns `{"ok":true,"model":"glm-4.7-flash"}` from a clean browser.
+1. `https://<your-render-subdomain>.onrender.com/api/health` returns `{"ok":true,"model":"glm-4.7"}` from a clean browser.
 2. The deployed UI passes §7 row 1 end-to-end (Torquay itinerary mentions Farmers Market 27 Jun).
 3. The three secrets (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ZAI_API_KEY`) live only in the Render dashboard — `git grep -i "ZAI_API_KEY=" -- ':!docs' ':!**/*.md'` finds zero hits with a real key value.
 4. The Render Blueprint (`render.yaml`) is committed so future deploys are one click.

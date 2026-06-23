@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RACV Torquay Resort - 5 Day Family Itinerary</title>
+<style>
+  :root{
+    --ink:#000;
+    --paper:#fff;
+    --muted:#555;
+    --line:#000;
+    --soft:#e9e9e9;
+    --softer:#f5f5f5;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    line-height:1.55;
+    font-size:16px;
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:20px 16px 64px;}
+
+  /* ---------- Header ---------- */
+  header.hero{
+    border:2px solid var(--line);
+    padding:24px 20px;
+    text-align:center;
+    margin-bottom:22px;
+  }
+  .kicker{
+    text-transform:uppercase;
+    letter-spacing:.28em;
+    font-size:11px;
+    font-weight:700;
+    margin:0 0 10px;
+  }
+  h1{
+    font-size:30px;
+    line-height:1.12;
+    margin:0 0 8px;
+    font-weight:800;
+    letter-spacing:-.01em;
+  }
+  .sub{font-size:14px;color:var(--muted);margin:0;}
+  .meta-row{
+    display:flex;flex-wrap:wrap;justify-content:center;gap:8px 10px;
+    margin-top:16px;
+  }
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:5px 12px;
+    font-size:12px;
+    font-weight:600;
+  }
+  .chip svg{width:14px;height:14px;}
+
+  /* ---------- Weather strip ---------- */
+  .section-label{
+    text-transform:uppercase;
+    letter-spacing:.18em;
+    font-size:12px;
+    font-weight:700;
+    margin:30px 0 12px;
+    padding-bottom:6px;
+    border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:8px;
+  }
+  .section-label svg{width:16px;height:16px;}
+
+  .weather-grid{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:8px;
+  }
+  .wcard{
+    border:1px solid var(--line);
+    padding:10px 6px;
+    text-align:center;
+  }
+  .wcard .wd{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+  .wcard .wdate{font-size:10px;color:var(--muted);margin-bottom:6px;}
+  .wcard .wi{height:30px;display:flex;align-items:center;justify-content:center;margin:2px 0 4px;}
+  .wcard .wi svg{width:26px;height:26px;}
+  .wcard .wt{font-size:13px;font-weight:700;}
+  .wcard .wlo{font-size:11px;color:var(--muted);}
+  .wcard .wcond{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.25;}
+
+  /* ---------- Day accordions ---------- */
+  details.day{
+    border:2px solid var(--line);
+    margin-bottom:12px;
+  }
+  details.day[open]{}
+  summary.daysum{
+    list-style:none;
+    cursor:pointer;
+    padding:16px 16px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    user-select:none;
+  }
+  summary.daysum::-webkit-details-marker{display:none;}
+  .daynum{
+    flex:0 0 auto;
+    width:46px;height:46px;
+    border:2px solid var(--line);
+    border-radius:50%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-weight:800;line-height:1;
+  }
+  .daynum small{font-size:8px;letter-spacing:.12em;font-weight:700;}
+  .daynum span{font-size:19px;}
+  .dayhead{flex:1 1 auto;min-width:0;}
+  .dayhead .dh-day{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);font-weight:700;}
+  .dayhead .dh-title{font-size:17px;font-weight:800;line-height:1.2;}
+  .dayhead .dh-mini{
+    font-size:11px;color:var(--muted);margin-top:3px;
+    display:flex;align-items:center;gap:5px;flex-wrap:wrap;
+  }
+  .dayhead .dh-mini svg{width:12px;height:12px;}
+  .chev{flex:0 0 auto;width:18px;height:18px;transition:transform .2s ease;}
+  details.day[open] .chev{transform:rotate(180deg);}
+
+  .daybody{
+    padding:0 16px 18px;
+    border-top:1px solid var(--soft);
+  }
+
+  /* timeline of activities */
+  .tl{margin:14px 0 0;padding:0;list-style:none;}
+  .tl li{
+    position:relative;
+    padding:0 0 18px 86px;
+  }
+  .tl li:last-child{padding-bottom:2px;}
+  .tl li::before{
+    content:"";
+    position:absolute;left:64px;top:6px;bottom:-6px;
+    width:2px;background:var(--soft);
+  }
+  .tl li:last-child::before{display:none;}
+  .tl .tm{
+    position:absolute;left:0;top:2px;
+    width:56px;text-align:right;
+    font-size:11px;font-weight:700;
+  }
+  .tl .dot{
+    position:absolute;left:58px;top:4px;
+    width:14px;height:14px;border:2px solid var(--line);
+    border-radius:50%;background:var(--paper);
+  }
+  .tl .dot svg{width:8px;height:8px;position:absolute;top:1px;left:1px;}
+  .tl .act{font-weight:700;font-size:15px;}
+  .tl .desc{font-size:13px;color:var(--muted);margin-top:2px;}
+
+  .note{
+    margin-top:16px;
+    border:1px dashed var(--line);
+    padding:10px 12px;
+    font-size:12px;
+    display:flex;gap:8px;align-items:flex-start;
+  }
+  .note svg{width:15px;height:15px;flex:0 0 auto;margin-top:2px;}
+  .note b{font-weight:700;}
+
+  /* tags */
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
+  .tag{
+    border:1px solid var(--line);
+    font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+    padding:3px 8px;border-radius:3px;
+    display:inline-flex;align-items:center;gap:5px;
+  }
+  .tag svg{width:11px;height:11px;}
+
+  /* know before you go */
+  .kb{border:2px solid var(--line);padding:16px;margin-top:8px;}
+  .kb ul{margin:0;padding-left:18px;}
+  .kb li{font-size:13px;margin-bottom:7px;}
+  .kb li:last-child{margin-bottom:0;}
+
+  footer{
+    margin-top:34px;text-align:center;font-size:11px;color:var(--muted);
+    border-top:1px solid var(--soft);padding-top:16px;line-height:1.6;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:600px){
+    body{font-size:15px;}
+    h1{font-size:24px;}
+    .weather-grid{grid-template-columns:repeat(5,1fr);gap:5px;}
+    .wcard{padding:8px 3px;}
+    .wcard .wi svg{width:22px;height:22px;}
+    .wcard .wcond{display:none;}
+    .tl li{padding-left:74px;}
+    .tl .tm{width:48px;font-size:10px;}
+    .tl .dot{left:52px;}
+    .tl li::before{left:58px;}
+    .daynum{width:42px;height:42px;}
+  }
+  @media print{
+    details.day{break-inside:avoid;}
+    summary.daysum{pointer-events:none;}
+    .chev{display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ HEADER ============ -->
+  <header class="hero">
+    <p class="kicker">Family Getaway Itinerary</p>
+    <h1>RACV Torquay Resort</h1>
+    <p class="sub">5 Days on the Surf Coast &middot; Great Ocean Road, Victoria</p>
+    <div class="meta-row">
+      <span class="chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+        Fri 26 &ndash; Tue 30 Jun 2026
+      </span>
+      <span class="chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3"/><path d="M2 21v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1"/><circle cx="17" cy="9" r="2"/><path d="M15 14h2a4 4 0 0 1 4 4v1"/></svg>
+        2 Adults + Young Kids
+      </span>
+      <span class="chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        Balanced Pace
+      </span>
+      <span class="chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 14c2 0 2-1.5 4-1.5S9 14 11 14s2-1.5 4-1.5S17 14 19 14"/><path d="M3 18c2 0 2-1.5 4-1.5S9 18 11 18s2-1.5 4-1.5S17 18 19 18"/><path d="M12 3v6M12 3l-2 2M12 3l2 2"/></svg>
+        Winter
+      </span>
+    </div>
+  </header>
+
+  <!-- ============ WEATHER ============ -->
+  <div class="section-label">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>
+    Weather at a Glance
+  </div>
+  <div class="weather-grid">
+    <!-- Day 1 -->
+    <div class="wcard">
+      <div class="wd">Fri</div><div class="wdate">26 Jun</div>
+      <div class="wi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="9" r="3.2"/><path d="M9 3v1.5M9 13.5V15M3 9h1.5M13.5 9H15M4.8 4.8l1 1M12.2 12.2l1 1M13.2 4.8l-1 1M5.8 12.2l-1 1"/><path d="M11 18a3 3 0 0 1 .3-6 4 4 0 0 1 7.5 1.2A2.6 2.6 0 0 1 18.5 18z"/></svg></div>
+      <div class="wt">13&deg;</div><div class="wlo">10&deg; low</div>
+      <div class="wcond">Sun &amp; cloud</div>
+    </div>
+    <!-- Day 2 -->
+    <div class="wcard">
+      <div class="wd">Sat</div><div class="wdate">27 Jun</div>
+      <div class="wi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="9" r="3.2"/><path d="M9 3v1.5M3 9h1.5M4.8 4.8l1 1M13.2 4.8l-1 1"/><path d="M11 19a3 3 0 0 1 .3-6 4 4 0 0 1 7.5 1.2A2.6 2.6 0 0 1 18.5 19z"/></svg></div>
+      <div class="wt">14&deg;</div><div class="wlo">9&deg; low</div>
+      <div class="wcond">Mostly sunny</div>
+    </div>
+    <!-- Day 3 -->
+    <div class="wcard">
+      <div class="wd">Sun</div><div class="wdate">28 Jun</div>
+      <div class="wi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 16a4 4 0 0 1 .4-8 5 5 0 0 1 9.4 1.6A3.3 3.3 0 0 1 16 16z"/></svg></div>
+      <div class="wt">13&deg;</div><div class="wlo">11&deg; low</div>
+      <div class="wcond">Cloudy</div>
+    </div>
+    <!-- Day 4 -->
+    <div class="wcard">
+      <div class="wd">Mon</div><div class="wdate">29 Jun</div>
+      <div class="wi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 14a4 4 0 0 1 .4-8 5 5 0 0 1 9.4 1.6A3.3 3.3 0 0 1 16 14z"/><path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3"/></svg></div>
+      <div class="wt">10&deg;</div><div class="wlo">8&deg; low</div>
+      <div class="wcond">Showers</div>
+    </div>
+    <!-- Day 5 -->
+    <div class="wcard">
+      <div class="wd">Tue</div><div class="wdate">30 Jun</div>
+      <div class="wi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 14a4 4 0 0 1 .4-8 5 5 0 0 1 9.4 1.6A3.3 3.3 0 0 1 16 14z"/><path d="M9 18l-1 2M15 18l-1 2"/></svg></div>
+      <div class="wt">10&deg;</div><div class="wlo">10&deg; low</div>
+      <div class="wcond">Cloud, light rain</div>
+    </div>
+  </div>
+
+  <!-- ============ DAYS ============ -->
+  <div class="section-label">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    Day by Day &middot; Tap to Expand
+  </div>
+
+  <!-- ===== DAY 1 ===== -->
+  <details class="day" open>
+    <summary class="daysum">
+      <div class="daynum"><small>DAY</small><span>1</span></div>
+      <div class="dayhead">
+        <div class="dh-day">Friday &middot; 26 June</div>
+        <div class="dh-title">Arrive &amp; Settle In</div>
+        <div class="dh-mini">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="3"/><path d="M11 18a3 3 0 0 1 .3-6 4 4 0 0 1 7.5 1.2A2.6 2.6 0 0 1 18.5 18z"/></svg>
+          13&deg; / 10&deg; &middot; Sun &amp; cloud &middot; Resort day
+        </div>
+      </div>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </summary>
+    <div class="daybody">
+      <ul class="tl">
+        <li>
+          <span class="tm">11:00</span><span class="dot"></span>
+          <div class="act">Easy drive down from Melbourne</div>
+          <div class="desc">About 1h 30m via the M1. Stop in Geelong or Torquay town for a coffee and stretch before check-in.</div>
+        </li>
+        <li>
+          <span class="tm">1:00</span><span class="dot"></span>
+          <div class="act">Lunch in Torquay town</div>
+          <div class="desc">Grab a relaxed bakery or cafe lunch along Gilbert Street while you wait for rooms to be ready.</div>
+        </li>
+        <li>
+          <span class="tm">3:00</span><span class="dot"></span>
+          <div class="act">Check in to the Family Room</div>
+          <div class="desc">Spacious family rooms sleep up to 7. Unpack, let the kids explore, and get the lay of the resort.</div>
+        </li>
+        <li>
+          <span class="tm">4:00</span><span class="dot"></span>
+          <div class="act">Heated indoor pool &amp; wading pool</div>
+          <div class="desc">Warm indoor water is perfect on a cool afternoon. Toddler-friendly wading area plus a separate splash zone.</div>
+        </li>
+        <li>
+          <span class="tm">6:30</span><span class="dot"></span>
+          <div class="act">Dinner at the resort restaurant</div>
+          <div class="desc">Family-friendly menu on site &mdash; no driving needed after a travel day.</div>
+        </li>
+      </ul>
+      <div class="tags">
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M12 3v18"/></svg>Indoor</span>
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 16c2 0 2-1 4-1s2 1 4 1 2-1 4-1 2 1 4 1"/><circle cx="12" cy="7" r="2"/></svg>Pool</span>
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-6h6v6"/></svg>At the resort</span>
+      </div>
+      <div class="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <span><b>Tip:</b> Keep day one light. After the drive, the resort grounds, pool and playground are more than enough to tire the little ones out.</span>
+      </div>
+    </div>
+  </details>
+
+  <!-- ===== DAY 2 ===== -->
+  <details class="day">
+    <summary class="daysum">
+      <div class="daynum"><small>DAY</small><span>2</span></div>
+      <div class="dayhead">
+        <div class="dh-day">Saturday &middot; 27 June</div>
+        <div class="dh-title">Beach Town &amp; Surf Culture</div>
+        <div class="dh-mini">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="3"/><path d="M9 3v1.5M3 9h1.5"/></svg>
+          14&deg; / 9&deg; &middot; Mostly sunny &middot; Best day to be outdoors
+        </div>
+      </div>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </summary>
+    <div class="daybody">
+      <ul class="tl">
+        <li>
+          <span class="tm">9:30</span><span class="dot"></span>
+          <div class="act">Torquay Front Beach &amp; foreshore playground</div>
+          <div class="desc">Sheltered, calm water and a big playground right on the Esplanade. Rug up &mdash; sunny but crisp.</div>
+        </li>
+        <li>
+          <span class="tm">11:00</span><span class="dot"></span>
+          <div class="act">Short stroll on the Surf Coast Walk</div>
+          <div class="desc">Easy, pram-friendly section along the clifftops to Point Danger lookout for big ocean views.</div>
+        </li>
+        <li>
+          <span class="tm">12:30</span><span class="dot"></span>
+          <div class="act">Fish &amp; chips lunch by the water</div>
+          <div class="desc">Classic Torquay takeaway on the foreshore lawns, or a warm cafe if the wind picks up.</div>
+        </li>
+        <li>
+          <span class="tm">2:00</span><span class="dot"></span>
+          <div class="act">Australian National Surfing Museum</div>
+          <div class="desc">Hands-on displays kids love. Family pass approx $25. A great warm indoor option for the afternoon.</div>
+        </li>
+        <li>
+          <span class="tm">3:30</span><span class="dot"></span>
+          <div class="act">Surf City precinct browse</div>
+          <div class="desc">Wander the surf brand stores next to the museum, then head back for downtime before dinner.</div>
+        </li>
+      </ul>
+      <div class="tags">
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 18c3 0 3-2 6-2s3 2 6 2 3-2 6-2"/><path d="M12 4c4 2 4 8 0 10"/></svg>Beach</span>
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V8l8-4 8 4v11"/><path d="M4 19h16"/></svg>Museum</span>
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12a7 7 0 0 1 14 0"/><path d="M3 12h18"/><path d="M12 12v7"/></svg>Easy walk</span>
+      </div>
+      <div class="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <span><b>Tip:</b> Mornings are calmest on the coast in winter. Pack beanies and a thermos &mdash; the museum is the perfect afternoon fallback if it clouds over.</span>
+      </div>
+    </div>
+  </details>
+
+  <!-- ===== DAY 3 ===== -->
+  <details class="day">
+    <summary class="daysum">
+      <div class="daynum"><small>DAY</small><span>3</span></div>
+      <div class="dayhead">
+        <div class="dh-day">Sunday &middot; 28 June</div>
+        <div class="dh-title">Theme Park &amp; Resort Play</div>
+        <div class="dh-mini">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16a4 4 0 0 1 .4-8 5 5 0 0 1 9.4 1.6A3.3 3.3 0 0 1 16 16z"/></svg>
+          13&deg; / 11&deg; &middot; Cloudy &middot; Mix of out &amp; in
+        </div>
+      </div>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </summary>
+    <div class="daybody">
+      <ul class="tl">
+        <li>
+          <span class="tm">9:30</span><span class="dot"></span>
+          <div class="act">Tiger Moth World</div>
+          <div class="desc">Family theme park just out of town &mdash; mini-golf, paddle boats, mini soccer and a vintage aircraft museum. Loads for under-8s.</div>
+        </li>
+        <li>
+          <span class="tm">12:30</span><span class="dot"></span>
+          <div class="act">Lunch back near the resort</div>
+          <div class="desc">Casual lunch, then back to base to dry off and warm up out of the afternoon cloud.</div>
+        </li>
+        <li>
+          <span class="tm">2:00</span><span class="dot"></span>
+          <div class="act">Adventure playground</div>
+          <div class="desc">6m spider climbing net, slides and a giant jumping pillow &mdash; separate areas for younger and older kids.</div>
+        </li>
+        <li>
+          <span class="tm">3:30</span><span class="dot"></span>
+          <div class="act">Games room &amp; arcade</div>
+          <div class="desc">Table tennis, foosball and arcade games &mdash; ideal once the afternoon turns grey.</div>
+        </li>
+        <li>
+          <span class="tm">5:00</span><span class="dot"></span>
+          <div class="act">Second swim in the heated pool</div>
+          <div class="desc">A relaxed end to the day before an early dinner.</div>
+        </li>
+      </ul>
+      <div class="tags">
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18M3 12h18"/></svg>Theme park</span>
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20l8-16 8 16"/><path d="M4 20h16"/></svg>Playground</span>
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M8 12h.01M16 12h.01"/></svg>Games room</span>
+      </div>
+      <div class="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <span><b>Tip:</b> Check Tiger Moth World's winter opening hours and weather before you set out &mdash; some outdoor activities pause in wet weather. The resort has plenty of indoor backup.</span>
+      </div>
+    </div>
+  </details>
+
+  <!-- ===== DAY 4 ===== -->
+  <details class="day">
+    <summary class="daysum">
+      <div class="daynum"><small>DAY</small><span>4</span></div>
+      <div class="dayhead">
+        <div class="dh-day">Monday &middot; 29 June</div>
+        <div class="dh-title">Great Ocean Road Drive</div>
+        <div class="dh-mini">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 14a4 4 0 0 1 .4-8 5 5 0 0 1 9.4 1.6A3.3 3.3 0 0 1 16 14z"/><path d="M8 17l-1 3M14 17l-1 3"/></svg>
+          10&deg; / 8&deg; &middot; Showers &middot; Coziest, car-based day
+        </div>
+      </div>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </summary>
+    <div class="daybody">
+      <ul class="tl">
+        <li>
+          <span class="tm">9:30</span><span class="dot"></span>
+          <div class="act">Bells Beach lookout</div>
+          <div class="desc">A quick, dramatic stop to watch the surf from the platform &mdash; world-famous swell, no climbing required.</div>
+        </li>
+        <li>
+          <span class="tm">10:30</span><span class="dot"></span>
+          <div class="act">Anglesea &mdash; kangaroo spotting</div>
+          <div class="desc">Mobs of kangaroos graze around the Anglesea golf course. An easy crowd-pleaser for little ones.</div>
+        </li>
+        <li>
+          <span class="tm">12:00</span><span class="dot"></span>
+          <div class="act">Lunch in Aireys Inlet</div>
+          <div class="desc">Warm, family-friendly cafe stop out of the showers.</div>
+        </li>
+        <li>
+          <span class="tm">1:30</span><span class="dot"></span>
+          <div class="act">Split Point Lighthouse</div>
+          <div class="desc">The "Round the Twist" lighthouse with short clifftop paths. Admire from the base if the weather is wild.</div>
+        </li>
+        <li>
+          <span class="tm">3:00</span><span class="dot"></span>
+          <div class="act">Drive back &amp; hot chocolate</div>
+          <div class="desc">Scenic return along the coast, then warm up at the resort. Quiet evening in.</div>
+        </li>
+      </ul>
+      <div class="tags">
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h11l3 5v4h-2M9 17h6"/></svg>Day drive</span>
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18"/><path d="M6 20V10l6-5 6 5v10"/><path d="M11 20v-4h2v4"/></svg>Lighthouse</span>
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v6M9 6l3-3 3 3"/><circle cx="12" cy="15" r="5"/></svg>Wildlife</span>
+      </div>
+      <div class="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <span><b>Tip:</b> Coldest, wettest day &mdash; perfect for a drive where you hop in and out of the car. Keep stops short, bring snacks, and have raincoats ready.</span>
+      </div>
+    </div>
+  </details>
+
+  <!-- ===== DAY 5 ===== -->
+  <details class="day">
+    <summary class="daysum">
+      <div class="daynum"><small>DAY</small><span>5</span></div>
+      <div class="dayhead">
+        <div class="dh-day">Tuesday &middot; 30 June</div>
+        <div class="dh-title">Slow Morning &amp; Farewell</div>
+        <div class="dh-mini">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 14a4 4 0 0 1 .4-8 5 5 0 0 1 9.4 1.6A3.3 3.3 0 0 1 16 14z"/><path d="M9 18l-1 2M15 18l-1 2"/></svg>
+          10&deg; / 10&deg; &middot; Cloud, light rain &middot; Check-out day
+        </div>
+      </div>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </summary>
+    <div class="daybody">
+      <ul class="tl">
+        <li>
+          <span class="tm">8:00</span><span class="dot"></span>
+          <div class="act">Relaxed breakfast</div>
+          <div class="desc">No rush &mdash; one last easy morning at the resort.</div>
+        </li>
+        <li>
+          <span class="tm">9:00</span><span class="dot"></span>
+          <div class="act">Final swim or playground visit</div>
+          <div class="desc">Squeeze in one more splash or play before packing up.</div>
+        </li>
+        <li>
+          <span class="tm">10:00</span><span class="dot"></span>
+          <div class="act">Pack &amp; check out</div>
+          <div class="desc">Standard check-out is mid-morning. Load the car and settle the bill.</div>
+        </li>
+        <li>
+          <span class="tm">10:45</span><span class="dot"></span>
+          <div class="act">Last stroll along the Esplanade</div>
+          <div class="desc">A final coastal photo and a takeaway coffee before heading off.</div>
+        </li>
+        <li>
+          <span class="tm">11:30</span><span class="dot"></span>
+          <div class="act">Lunch on the way home</div>
+          <div class="desc">Stop in Geelong's waterfront for a bite to break up the drive back to Melbourne.</div>
+        </li>
+      </ul>
+      <div class="tags">
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M6 7v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>Pack up</span>
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a3 3 0 0 1 0 6h-1"/><path d="M4 8h14v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><path d="M7 3v2M11 3v2M15 3v2"/></svg>Coffee stop</span>
+        <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h11l3 5v4h-2M9 17h6"/></svg>Drive home</span>
+      </div>
+      <div class="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <span><b>Tip:</b> Confirm your exact check-out time at reception. Many resorts offer luggage storage if you want a little more beach time before leaving.</span>
+      </div>
+    </div>
+  </details>
+
+  <!-- ============ KNOW BEFORE YOU GO ============ -->
+  <div class="section-label">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+    Know Before You Go
+  </div>
+  <div class="kb">
+    <ul>
+      <li><b>Winter packing:</b> beanies, waterproof jackets, warm layers and closed shoes. Pool swimwear stays useful &mdash; the indoor pool is heated.</li>
+      <li><b>Daylight:</b> in late June the sun sets around 5:15pm, so plan outdoor activities for the morning and early afternoon.</li>
+      <li><b>Book ahead:</b> confirm opening hours for Tiger Moth World and the Surfing Museum, as winter timetables can be shorter.</li>
+      <li><b>On-site backups:</b> indoor pool, games room, day spa and the restaurant mean a wet day at the resort is never a wasted one.</li>
+      <li><b>Driving:</b> Great Ocean Road stretches are winding &mdash; allow extra time and watch for wildlife near dawn and dusk.</li>
+      <li><b>Weather note:</b> figures are a forecast snapshot &mdash; re-check the Bureau of Meteorology closer to your dates.</li>
+    </ul>
+  </div>
+
+  <footer>
+    RACV Torquay Resort &middot; Surf Coast, Victoria<br>
+    Itinerary for Fri 26 &ndash; Tue 30 June 2026 &middot; 2 adults + young children &middot; balanced pace<br>
+    Weather is an indicative forecast only.
+  </footer>
+
+</div>
+</body>
+</html>
