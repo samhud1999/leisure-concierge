@@ -1,5 +1,5 @@
 // All 12 tool definitions (5 read-only + 7 mutation) in Anthropic SDK shape.
-// Read-only tools delegate to handlers in server/index.js (TOOL_HANDLERS export).
+// Read-only tools delegate to makeReadonlyHandlers() in server/tools/readonlyHandlers.js.
 // Mutation tools delegate to ./mutator.js.
 
 const j = (props, required) => ({ type: 'object', properties: props, required });

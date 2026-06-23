@@ -1,6 +1,7 @@
 import { CHAT_TOOLS } from './chatTools.js';
 import { buildChatSystemPrompt } from './systemPrompt.js';
 import { makeReadonlyHandlers } from '../tools/readonlyHandlers.js';
+import { fetchLiveEventsFor, CACHE as LIVE_EVENTS_CACHE } from '../liveEvents/index.js';
 import {
   addActivity, swapActivity, removeActivity, reorderDay,
   setPreference, pinBlock, regenerateDay, loadStore,
@@ -24,7 +25,11 @@ export async function runChatAgent({ token, messages, supabase, anthropic, model
   const system = buildChatSystemPrompt({ itinerary: row.doc, userMessage });
 
   // 2. Build read-only handlers bound to this request's supabase client.
-  const readHandlers = makeReadonlyHandlers(supabase);
+  // Live events are wired here; do NOT remove fetchLiveEventsFor / LIVE_EVENTS_CACHE.
+  const readHandlers = makeReadonlyHandlers(supabase, {
+    fetchLiveEventsFor,
+    liveEventsCache: LIVE_EVENTS_CACHE,
+  });
 
   // 3. Run agent loop (max 8 turns).
   const store = loadStore(supabase, token);

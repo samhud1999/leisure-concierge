@@ -1,13 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { fromUrlSafe } from '../tools/tokens.js';
 
 export function mountItineraryPage(app, { supabase, publicDir }) {
   app.get('/i/:token', async (req, res) => {
-    const { token } = req.params;
+    const dbToken = fromUrlSafe(req.params.token);
     const { data: row, error } = await supabase
       .from('itineraries')
       .select('status, doc, last_error')
-      .eq('token', token)
+      .eq('token', dbToken)
       .maybeSingle();
     if (error || !row) return res.status(404).send('Itinerary not found');
 

@@ -99,7 +99,7 @@ function renderBlock(b) {
         <div class="actions">
           <button data-action="pin">${b.pinned ? '✕ Unpin' : '📌 Pin'}</button>
           ${b.pinned ? '' : '<button data-action="swap">↔ Swap</button>'}
-          <button data-action="remove">✕ Remove</button>
+          ${b.pinned ? '' : '<button data-action="remove">✕ Remove</button>'}
         </div>
       </div>
     </div>`;

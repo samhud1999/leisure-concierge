@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import { mountItineraryApi } from '../../routes/itineraryApi.js';
 
-function makeApp(generateImpl) {
+function makeApp(generateImpl, supabase = null) {
   const app = express();
   app.use(express.json());
   mountItineraryApi(app, {
-    supabase: null, anthropic: null, model: 'glm-test',
+    supabase, anthropic: null, model: 'glm-test',
     generateItinerary: generateImpl,                 // inject for testing
   });
   return app;
@@ -33,11 +33,13 @@ async function request(app, method, path, body) {
 }
 
 test('POST /api/itinerary/:token/generate returns the built itinerary', async () => {
+  // Use a URL-safe token whose padding-decoded form is the same (multiple of 4 chars).
   const fake = async ({ token }) => ({ token, version: 1, days: [] });
   const app = makeApp(fake);
-  const r = await request(app, 'POST', '/api/itinerary/abc/generate');
+  const r = await request(app, 'POST', '/api/itinerary/abcd/generate');
   assert.equal(r.status, 200);
-  assert.equal(r.body.itinerary.token, 'abc');
+  // 'abcd' is 4 chars — fromUrlSafe adds no padding, so the token round-trips unchanged.
+  assert.equal(r.body.itinerary.token, 'abcd');
 });
 
 test('returns 404 when generator throws itinerary_not_found', async () => {
@@ -52,4 +54,20 @@ test('returns 502 when generator throws generator_unparseable', async () => {
   const app = makeApp(fake);
   const r = await request(app, 'POST', '/api/itinerary/abc/generate');
   assert.equal(r.status, 502);
+});
+
+test('writes status=generation_failed when generator throws non-404 error', async () => {
+  const updates = [];
+  const supabase = {
+    from: () => ({
+      update(patch) { updates.push(patch); return { eq: async () => ({ error: null }) }; },
+    }),
+  };
+  const fakeGenerate = async () => { throw Object.assign(new Error('boom'), { httpStatus: 502 }); };
+  const app = makeApp(fakeGenerate, supabase);
+  const r = await request(app, 'POST', '/api/itinerary/tok/generate');
+  assert.equal(r.status, 502);
+  assert.equal(updates.length, 1);
+  assert.equal(updates[0].status, 'generation_failed');
+  assert.equal(updates[0].last_error, 'boom');
 });
