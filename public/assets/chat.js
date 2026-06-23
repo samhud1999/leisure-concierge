@@ -124,9 +124,7 @@ async function sendText(text) {
 
 // Listen for inline-action events emitted by itinerary.js in Task 18
 window.addEventListener('inline-action', (e) => {
-  const { action, blockId } = e.detail || {};
-  if (!action || !blockId) return;
-  sendText(`${action} block ${blockId}`);
+  if (e.detail?.text) sendText(e.detail.text);
 });
 
 function escapeHtml(s) {

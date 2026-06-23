@@ -235,3 +235,39 @@ function formatStayLine(s) {
   const fmt = (d) => new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
   return `${fmt(s.check_in)} – ${fmt(s.check_out)} · ${s.nights} night${s.nights === 1 ? '' : 's'} · ${escapeHtml(s.room_type)} for ${s.party_size}`;
 }
+
+// --- Block action handler (Task 18) ---
+$itin.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.actions button');
+  if (!btn) return;
+  const blockEl = btn.closest('[data-block-id]');
+  const blockId = blockEl?.dataset.blockId;
+  if (!blockId) return;
+  const action = btn.dataset.action;
+  const m = location.pathname.match(/^\/i\/([^/]+)/);
+  if (!m) return;
+  const token = m[1];
+
+  try {
+    if (action === 'pin') {
+      const pinned = !blockEl.classList.contains('pinned');
+      const r = await fetch(`/api/itinerary/${token}/pin`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ block_id: blockId, pinned }),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        await refetchItinerary(data.version);
+      }
+    } else if (action === 'swap' || action === 'remove') {
+      // Send a pre-formatted chat message; the agent will call swap_activity / remove_activity.
+      const msg = action === 'swap'
+        ? `Swap block ${blockId} for something different (preferably indoor if the weather is poor).`
+        : `Remove block ${blockId}.`;
+      // Dispatch a custom event the chat module listens for.
+      window.dispatchEvent(new CustomEvent('inline-action', { detail: { text: msg } }));
+    }
+  } catch (err) {
+    console.error('inline action failed', err);
+  }
+});
