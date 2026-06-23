@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — RACV Member Concierge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body class="page-login">
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="RACV home">
+      <img src="/img/racv-logo.svg" alt="RACV" width="120" height="50">
+    </a>
+  </header>
+  <div class="journey-curve" aria-hidden="true">
+    <img src="/img/journey-curve.svg" alt="">
+  </div>
+  <main class="login-main">
+    <section class="login-card" aria-labelledby="login-title">
+      <h1 id="login-title">Welcome back</h1>
+      <p class="lede">Open your stay itinerary.</p>
+      <form id="login-form" novalidate>
+        <label for="member_number">Member number</label>
+        <input id="member_number" name="member_number" inputmode="numeric" autocomplete="username" placeholder="e.g. 100201" required>
+        <label for="surname">Surname</label>
+        <input id="surname" name="surname" autocomplete="family-name" required>
+        <button type="submit" class="btn btn-yellow">Log in</button>
+        <p id="error" class="error" role="alert" aria-live="polite" hidden></p>
+      </form>
+      <p class="hint">Don't have a member number? Try demo: <strong>100201</strong> / <strong>Whitman</strong>.</p>
+    </section>
+  </main>
+  <footer class="site-footer">Proof of concept — not affiliated with RACV.</footer>
+  <script type="module" src="/assets/login.js"></script>
+</body>
+</html>
