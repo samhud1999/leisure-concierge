@@ -148,10 +148,35 @@ export async function regenerateDay({ store, anthropic, model, day_id, reason })
   catch { throw Object.assign(new Error('regenerate_day_unparseable'), { httpStatus: 502 }); }
   if (!parsed.day || parsed.day.id !== day_id) throw Object.assign(new Error('regenerate_day_invalid'), { httpStatus: 502 });
 
-  // Preserve pinned blocks from the original day.
-  const pinned = day.blocks.filter(b => b.pinned);
-  const fresh = (parsed.day.blocks || []).filter(b => !pinned.some(p => p.id === b.id));
-  day.blocks = [...pinned, ...fresh];
+  // softRepair the GLM-returned blocks before merging (fills missing icons, trims overlong strings, etc.)
+  const repairedParsed = softRepair({ days: [parsed.day] }, { weather: { days: day.weather ? [day.weather] : [] } });
+  parsed.day = repairedParsed.days[0];
+
+  // Preserve pinned blocks at their original indices.
+  const originalPinned = day.blocks
+    .map((b, i) => b.pinned ? { index: i, block: b } : null)
+    .filter(Boolean);
+  const freshFromGlm = (parsed.day.blocks || []).filter(b => !originalPinned.some(p => p.block.id === b.id));
+
+  const merged = [];
+  let freshIdx = 0;
+  const targetLen = originalPinned.length + freshFromGlm.length;
+  for (let i = 0; i < targetLen; i++) {
+    const pinHere = originalPinned.find(p => p.index === i);
+    if (pinHere) {
+      merged.push(pinHere.block);
+    } else if (freshIdx < freshFromGlm.length) {
+      merged.push(freshFromGlm[freshIdx++]);
+    }
+  }
+  // Append any pinned blocks whose original index is out of range for the new length.
+  for (const p of originalPinned) {
+    if (p.index >= targetLen) {
+      console.warn(`[regenerate_day] pinned block ${p.block.id} position ${p.index} out of range; appending to end`);
+      merged.push(p.block);
+    }
+  }
+  day.blocks = merged;
   day.weather = parsed.day.weather || day.weather;
   day.label = parsed.day.label || day.label;
   const version = await commit(store, doc);

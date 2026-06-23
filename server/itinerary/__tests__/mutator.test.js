@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   addActivity, swapActivity, removeActivity, reorderDay,
-  setPreference, pinBlock,
+  setPreference, pinBlock, regenerateDay,
 } from '../mutator.js';
 
 function seedDoc() {
@@ -110,4 +110,46 @@ test('pinBlock toggles the flag and survives subsequent swaps', async () => {
   const doc = seedDoc(); const store = makeStore(doc);
   await pinBlock({ store, block_id: 'blk-102', pinned: true });
   assert.equal(doc.days[0].blocks[1].pinned, true);
+});
+
+test('regenerateDay preserves pinned-block original index', async () => {
+  const doc = seedDoc();
+  doc.days[0].blocks[0].pinned = true;  // Arrival pinned at index 0
+  doc.days[0].blocks[1].pinned = false;
+  const store = makeStore(doc);
+  const fakeAnthropic = {
+    messages: { async create() {
+      return { content: [{ type: 'text', text: JSON.stringify({
+        day: { id: 'day-1', date: '2026-06-25', label: 'Thu 25 Jun',
+               weather: doc.days[0].weather,
+               blocks: [
+                 { id: 'blk-201', kind: 'dining', time_of_day: 'evening', icon: '🍽',
+                   title: 'New dinner', description: 'GLM regen.', venue: null, source_url: null, pinned: false }
+               ] } }) }] };
+    } },
+  };
+  await regenerateDay({ store, anthropic: fakeAnthropic, model: 'glm-test', day_id: 'day-1', reason: 'test' });
+  // Arrival was at index 0 and pinned — it should still be at index 0.
+  assert.equal(doc.days[0].blocks[0].id, 'blk-101');
+  assert.equal(doc.days[0].blocks[0].pinned, true);
+});
+
+test('regenerateDay softRepairs missing icon on GLM-returned blocks', async () => {
+  const doc = seedDoc();
+  const store = makeStore(doc);
+  const fakeAnthropic = {
+    messages: { async create() {
+      return { content: [{ type: 'text', text: JSON.stringify({
+        day: { id: 'day-1', date: '2026-06-25', label: 'Thu 25 Jun',
+               weather: doc.days[0].weather,
+               blocks: [
+                 // intentionally missing icon — softRepair should default it
+                 { id: 'blk-201', kind: 'activity', time_of_day: 'morning',
+                   title: 'New walk', description: 'GLM regen.', venue: null, source_url: null, pinned: false }
+               ] } }) }] };
+    } },
+  };
+  await regenerateDay({ store, anthropic: fakeAnthropic, model: 'glm-test', day_id: 'day-1', reason: 'test' });
+  // softRepair should have filled in the icon (activity → 🥾).
+  assert.ok(doc.days[0].blocks.find(b => b.id === 'blk-201').icon);
 });
