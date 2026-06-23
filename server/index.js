@@ -19,7 +19,7 @@ const {
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
   ZAI_API_KEY,
-  ZAI_MODEL = 'glm-4.7-flash',
+  ZAI_MODEL = 'glm-4.7',
   ZAI_BASE_URL = 'https://api.z.ai/api/anthropic',
   PORT = 3000,
   RESORT_BRAND = 'RACV',

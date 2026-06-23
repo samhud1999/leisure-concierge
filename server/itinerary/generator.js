@@ -52,6 +52,8 @@ export function buildGeneratorPrompt({ member, booking, resort, events, weather 
     'SOFT RULES:',
     "- Match the resort's vibe. Coastal walks at coastal resorts. Golf at golf resorts.",
     "- Personalise to the resort's own dining and experiences first.",
+    '- VARIETY across the stay. Do not repeat the same activity, the same restaurant, or the same kind of outing more than ONCE across all days. If the resort has limited dining options, rotate venues across days so two dinners do not land at the same place. If you propose a coastal walk on Day 2, propose a different walk on later days. Mix categories across days so each day feels distinct (one beach day, one cultural day, one slow day, etc.).',
+    '- A specific named restaurant or named experience may appear in the itinerary at most ONCE total. The exception is the resort\'s main pool, lounge, or other passive amenities, which can recur as filler.',
     '- Each block.description: 140 characters or fewer. Each title: 40 characters or fewer.',
     '',
     'WRITING STYLE (apply to every title and description):',

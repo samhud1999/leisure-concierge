@@ -87,6 +87,57 @@ if (!state || state.status === 'pending' || Object.keys(state).length === 0) {
   renderItinerary(state);
 }
 renderChatPanel(state);
+setupMobileChatToggle();
+
+// --- Mobile chat popup wiring ---------------------------------------------
+// On mobile (≤768px) the chat pane becomes a floating bottom sheet.
+// On desktop the FAB/backdrop/close button are display:none via CSS so this
+// JS is effectively a no-op there.
+function setupMobileChatToggle() {
+  if (document.querySelector('.chat-fab')) return;            // idempotent
+
+  const fab = document.createElement('button');
+  fab.type = 'button';
+  fab.className = 'chat-fab';
+  fab.setAttribute('aria-label', 'Open chat to refine your stay');
+  fab.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M21 12a8 8 0 0 1-8 8H6l-3 3V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/>' +
+    '<path d="M9 11h.01M13 11h.01M17 11h.01"/>' +
+    '</svg>' +
+    '<span class="fab-badge" aria-hidden="true">+</span>';
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'chat-backdrop';
+  backdrop.setAttribute('aria-hidden', 'true');
+
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'chat-close';
+  closeBtn.setAttribute('aria-label', 'Close chat');
+  closeBtn.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+  document.body.appendChild(fab);
+  document.body.appendChild(backdrop);
+  document.body.appendChild(closeBtn);
+
+  const open  = () => { document.body.classList.add('chat-open'); };
+  const close = () => { document.body.classList.remove('chat-open'); };
+  fab.addEventListener('click', open);
+  backdrop.addEventListener('click', close);
+  closeBtn.addEventListener('click', close);
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.body.classList.contains('chat-open')) close();
+  });
+
+  // When the user clicks inline Swap/Remove on a block, the agent's reply
+  // lives in the chat — auto-open the chat (mobile only; on desktop the
+  // chat is already visible so the open class is harmless).
+  window.addEventListener('inline-action', () => {
+    if (window.matchMedia('(max-width: 768px)').matches) open();
+  });
+}
 
 // --- Itinerary rendering ---------------------------------------------------
 function renderItinerary(doc) {

@@ -311,12 +311,21 @@ li.changed { animation: flash-bg 1200ms ease; }
 .error-wrap { padding: var(--s-5); max-width: 640px; margin: 0 auto; }
 .error-wrap .btn { margin-top: var(--s-3); }
 
+/* === Mobile chat popup widgets (hidden on desktop) === */
+.chat-fab,
+.chat-backdrop,
+.chat-close { display: none; }
+
 /* === Mobile === */
 @media (max-width: 768px) {
+  /* Page allowed to scroll naturally; chat is a floating sheet instead of a pane. */
   .page-itinerary { height: auto; overflow: visible; }
-  .layout { grid-template-columns: 1fr; }
-  .pane-itinerary { border-right: 0; border-bottom: 1px solid var(--racv-line); }
-  .pane-chat { min-height: 60vh; }
+  .layout { display: block; }
+  .pane-itinerary {
+    border-right: 0;
+    overflow-y: visible;
+    padding-bottom: 96px;       /* room for the FAB above the page footer */
+  }
   .art-hero h1 { font-size: 26px; }
   .tl li { padding-left: 78px; }
   .tl .tm { width: 50px; font-size: 10px; }
@@ -324,6 +333,95 @@ li.changed { animation: flash-bg 1200ms ease; }
   .tl li::before { left: 60px; }
   .daynum { width: 42px; height: 42px; }
   .wcard .wcond { display: none; }
+
+  /* Chat pane becomes a bottom sheet, hidden by default. */
+  .pane-chat {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: 0;
+    top: 10vh;
+    background: var(--racv-card);
+    z-index: 50;
+    transform: translateY(100%);
+    transition: transform 280ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    box-shadow: 0 -8px 32px rgba(10, 46, 92, 0.22);
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .pane-chat::before {
+    /* Drag-handle hint at the top of the sheet. */
+    content: '';
+    display: block;
+    width: 40px; height: 4px;
+    background: var(--racv-line);
+    border-radius: 2px;
+    margin: 8px auto 0;
+    flex: 0 0 auto;
+  }
+  body.chat-open .pane-chat { transform: translateY(0); }
+  .chat-controls { padding-bottom: var(--s-3); }
+
+  /* Floating chat action button. */
+  .chat-fab {
+    display: flex; align-items: center; justify-content: center;
+    position: fixed; bottom: 20px; right: 20px;
+    width: 60px; height: 60px;
+    background: var(--racv-yellow);
+    color: var(--racv-ink);
+    border: 0; border-radius: 50%;
+    box-shadow: 0 6px 18px rgba(10, 46, 92, 0.28);
+    z-index: 49;
+    cursor: pointer;
+    transition: transform 120ms ease, box-shadow 120ms ease, opacity 200ms ease;
+  }
+  .chat-fab:active { transform: scale(0.96); }
+  .chat-fab svg { width: 28px; height: 28px; }
+  .chat-fab .fab-badge {
+    position: absolute; top: -4px; right: -4px;
+    min-width: 18px; height: 18px; padding: 0 5px;
+    background: var(--racv-blue); color: #fff;
+    border-radius: 999px;
+    font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--racv-card);
+  }
+  body.chat-open .chat-fab { opacity: 0; pointer-events: none; }
+
+  /* Backdrop behind the sheet. */
+  .chat-backdrop {
+    display: block;
+    position: fixed; inset: 0;
+    background: rgba(10, 46, 92, 0.45);
+    z-index: 48;
+    opacity: 0; pointer-events: none;
+    transition: opacity 200ms ease;
+  }
+  body.chat-open .chat-backdrop { opacity: 1; pointer-events: auto; }
+
+  /* Close button (X) for the sheet. */
+  .chat-close {
+    display: flex; align-items: center; justify-content: center;
+    position: fixed;
+    top: calc(10vh + 12px); right: 12px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--racv-card);
+    color: var(--racv-ink);
+    border: 1px solid var(--racv-line);
+    box-shadow: 0 2px 6px rgba(10, 46, 92, 0.12);
+    z-index: 51;
+    cursor: pointer;
+    opacity: 0; pointer-events: none;
+    transition: opacity 200ms ease;
+  }
+  .chat-close svg { width: 18px; height: 18px; }
+  body.chat-open .chat-close { opacity: 1; pointer-events: auto; }
+
+  /* Prevent background scroll when the sheet is open. */
+  body.chat-open { overflow: hidden; }
 }
 
 /* Chat pane */
@@ -338,7 +436,11 @@ li.changed { animation: flash-bg 1200ms ease; }
 .chat-msg.assistant { background: var(--racv-tint); color: var(--racv-text); align-self: flex-start; border-top-left-radius: 4px; }
 .chat-msg.typing    { color: var(--racv-muted); font-style: italic; }
 
-.chat-controls { padding: var(--s-3); border-top: 1px solid var(--racv-line); background: var(--racv-card); }
+.chat-controls { padding: var(--s-3) var(--s-3) var(--s-4); border-top: 1px solid var(--racv-line); background: var(--racv-card); }
+@media (min-width: 769px) {
+  /* Desktop: extra buffer so the chat composer doesn't sit flush with the viewport edge. */
+  .chat-controls { padding-bottom: var(--s-5); }
+}
 
 /* Adaptive patterns */
 .chips { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-3); }

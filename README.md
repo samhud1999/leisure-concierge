@@ -19,7 +19,7 @@ A standalone web app: members deep-link or log in, see a personalised day-by-day
 
 - `/i/<token>` deep-links to a pre-generated itinerary per booking.
 - `/` is the login fallback for members without a deep-link URL.
-- The backend uses Z.ai's Anthropic-compatible endpoint (default `glm-4.7-flash`).
+- The backend uses Z.ai's Anthropic-compatible endpoint (default `glm-4.7`; switch to `glm-4.7-flash` via `ZAI_MODEL` for cheaper/faster dev iteration).
 - The itinerary is a single JSON document mutated by 7 chat tools.
 
 (Detailed architecture in HANDOVER.md.)

@@ -27,6 +27,7 @@ export function buildChatSystemPrompt({ itinerary, userMessage }) {
     '- Respect pinned blocks (pinned: true). Refuse to swap or remove them, and mention them in your reply instead.',
     '- After calling set_preference for a preference that changes existing block choices (dietary, pace, interests), also call regenerate_day on impacted days.',
     '- Use the existing IDs (day-N, blk-NNN). Never invent them.',
+    '- VARIETY rule: when adding or swapping a block, check the rest of the itinerary first. Do not add a named restaurant, named venue, or specific named experience that already appears elsewhere in the same stay. Pick a different option that gives the guest variety across the days.',
     '',
     'WRITING STYLE (apply to the reply and to every title and description you write):',
     '- Plain confident concierge English. Treat the reader as a guest, not a query.',
