@@ -13,6 +13,10 @@ let lastUiHint = FALLBACK_CHIPS;
 export function initChat({ token, onUpdate }) {
   _token = token;
   _onUpdate = onUpdate;
+  // Listen for inline-action events emitted by itinerary.js in Task 18
+  window.addEventListener('inline-action', (e) => {
+    if (e.detail?.text) sendText(e.detail.text);
+  });
   render();
 }
 
@@ -121,11 +125,6 @@ async function sendText(text) {
     renderHistory();
   }
 }
-
-// Listen for inline-action events emitted by itinerary.js in Task 18
-window.addEventListener('inline-action', (e) => {
-  if (e.detail?.text) sendText(e.detail.text);
-});
 
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
