@@ -1,4 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 40" role="img" aria-label="RACV">
-  <rect x="0" y="6" width="3" height="28" fill="#ffbf47"/>
-  <text x="14" y="29" font-family="Poppins, 'Segoe UI', Arial, sans-serif" font-size="22" font-weight="700" fill="#1f5aa5" letter-spacing="2">RACV</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 100" role="img" aria-label="RACV">
+  <style>
+    .racv-letters { font: italic 900 80px Poppins, Helvetica, Arial, sans-serif;
+                    fill: #0066CC; letter-spacing: -2px; }
+  </style>
+  <text x="0" y="68" class="racv-letters">RACV</text>
+  <!-- yellow journey stripes -->
+  <path d="M 0 88 Q 30 78, 60 86 T 120 88 T 180 86 T 240 88"
+        stroke="#FFD600" stroke-width="6" stroke-linecap="round" fill="none"
+        stroke-dasharray="38 8" />
 </svg>
