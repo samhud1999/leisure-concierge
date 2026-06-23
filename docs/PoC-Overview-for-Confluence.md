@@ -68,15 +68,15 @@ This PoC demonstrates that the capability is real, the experience is achievable 
 
 ```mermaid
 flowchart LR
-  A[Member books<br/>via existing RACV channel] --> B[Booking confirmation]
+  A[Member books, via existing RACV channel] --> B[Booking confirmation]
   B --> C{Today}
-  B --> D{Tomorrow with<br/>Leisure Concierge}
+  B --> D{Tomorrow with, Leisure Concierge}
   C --> C1[Email with PDF voucher]
-  C --> C2[Member assembles plan<br/>across 5+ sources]
+  C --> C2[Member assembles plan, across 5+ sources]
   C --> C3[Most members do not]
   D --> D1[Email contains a deep link]
-  D --> D2[Click reveals a fully formed<br/>day-by-day plan]
-  D --> D3[Member refines via chat<br/>or pins what they love]
+  D --> D2[Click reveals a fully formed, day-by-day plan]
+  D --> D3[Member refines via chat, or pins what they love]
   style C2 fill:#FBEAEC
   style C3 fill:#FBEAEC
   style D2 fill:#E6F4EA
@@ -109,22 +109,22 @@ The PoC is a complete, working leisure concierge for **RACV** members. It is sma
 ```mermaid
 graph TB
   subgraph Browser
-    L["/login.html<br/>(fallback)"]
-    I["/i/&lt;token&gt;<br/>(deep link, primary)"]
+    L["/login.html (fallback)"]
+    I["/i/&lt;token&gt. (deep link, primary)"]
   end
 
   subgraph "Node/Express server"
     R[Routes]
-    G["V1 generator<br/>(one-shot LLM call)"]
-    A["Chat agent<br/>(12-tool loop)"]
+    G["V1 generator (one-shot LLM call)"]
+    A["Chat agent (12-tool loop)"]
     M[Mutator]
   end
 
   subgraph "External services"
     S[(Supabase Postgres)]
-    Z[Z.ai GLM<br/>Anthropic-compatible]
-    O[Open-Meteo<br/>weather API]
-    E[Allow-listed event<br/>sources, web-scraped]
+    Z[Z.ai GLM, Anthropic-compatible]
+    O[Open-Meteo, weather API]
+    E[Allow-listed event, sources, web-scraped]
   end
 
   L -- "POST /api/login" --> R
@@ -182,22 +182,22 @@ graph TB
 ```mermaid
 sequenceDiagram
   autonumber
-  participant M as Member<br/>(browser)
-  participant L as Leisure Concierge<br/>server
+  participant M as Member (browser)
+  participant L as Leisure Concierge server
   participant DB as Supabase
   participant LLM as Z.ai GLM
   participant OM as Open-Meteo
   participant EV as Event sources
 
   Note over M,DB: First visit to a brand-new deep link
-  M->>L: GET /i/<token>
+  M->>L: GET deep link with token
   L->>DB: SELECT itinerary by token
-  DB-->>L: { status: 'pending', booking_id, member_id }
-  L->>DB: SELECT booking + member + resort
+  DB-->>L: status pending, booking and member ids
+  L->>DB: SELECT booking, member, resort
   DB-->>L: metadata for preview
-  L-->>M: HTML shell + inlined { status: 'pending', preview }
-  Note over M: Loading shell renders<br/>personalised hero
-  M->>L: POST /generate
+  L-->>M: HTML shell with inlined pending state
+  Note over M: Loading shell renders personalised hero
+  M->>L: POST generate
   L->>DB: SELECT resort knowledge, events, member
   L->>EV: live event scrape (cached 12h)
   EV-->>L: events
@@ -205,34 +205,34 @@ sequenceDiagram
   OM-->>L: daily weather
   L->>LLM: one call with full context
   LLM-->>L: structured itinerary JSON
-  L->>DB: UPDATE doc, status='ready', version=1
-  L-->>M: { itinerary }
-  Note over M: Itinerary renders;<br/>chat panel reveals
+  L->>DB: UPDATE doc, status ready, version 1
+  L-->>M: itinerary doc
+  Note over M: Itinerary renders, chat panel reveals
 
   Note over M,DB: Subsequent visit
-  M->>L: GET /i/<token>
+  M->>L: GET deep link with token
   L->>DB: SELECT itinerary
   DB-->>L: ready doc
-  L-->>M: HTML shell + inlined full doc
+  L-->>M: HTML shell with inlined full doc
   Note over M: Instant render
 
   Note over M,DB: Chat refinement
-  M->>L: POST /chat { messages }
+  M->>L: POST chat with message history
   L->>DB: load current doc
-  L->>LLM: agent loop (12 tools)
-  loop until stop_reason != tool_use
-    LLM-->>L: tool_use(swap_activity, ...)
+  L->>LLM: agent loop with 12 tools
+  loop until stop_reason is not tool_use
+    LLM-->>L: tool_use swap_activity
     L->>L: mutator applies change
-    L->>DB: UPDATE doc + version
+    L->>DB: UPDATE doc and version
     L->>LLM: tool_result
   end
-  LLM-->>L: final { reply, ui_hint }
-  L-->>M: { reply, ui_hint, version }
-  M->>L: GET /api/itinerary/<token>?since=prev
+  LLM-->>L: final reply and ui_hint
+  L-->>M: chat response with new version
+  M->>L: GET itinerary since previous version
   L->>DB: SELECT doc
   DB-->>L: new doc
-  L-->>M: { itinerary }
-  Note over M: Re-renders; changed<br/>blocks flash yellow
+  L-->>M: updated itinerary
+  Note over M: Re-renders, changed blocks flash yellow
 ```
 
 ---
@@ -364,15 +364,15 @@ sequenceDiagram
   Chat->>Agent: POST /chat { messages }
   Agent->>Agent: Build prompt with current doc
   Agent->>Agent: LLM call (12 tools available)
-  Note over Agent: LLM emits tool_use:<br/>get_resort_knowledge
+  Note over Agent: LLM emits tool_use — get_resort_knowledge
   Agent->>DB: SELECT amenities, dining
   DB-->>Agent: indoor options
   Agent->>Agent: LLM call (continuation)
-  Note over Agent: LLM emits tool_use:<br/>swap_activity(blk-105, ...)
+  Note over Agent: LLM emits tool_use — swap_activity(blk-105, ...)
   Agent->>Tools: swapActivity()
   Tools->>DB: UPDATE doc, bump version
   Agent->>Agent: LLM call (continuation)
-  Note over Agent: LLM emits final JSON:<br/>{ reply, ui_hint }
+  Note over Agent: LLM emits final JSON — { reply, ui_hint }
   Agent-->>Chat: { reply, ui_hint, version }
   Chat-->>M: Assistant bubble + new chips
   Chat->>DB: GET doc?since=prev
@@ -481,15 +481,15 @@ graph LR
   subgraph "Azure target"
     A1[App Service or Container Apps]
     A2[Azure Database for PostgreSQL]
-    A3[Azure OpenAI or Bedrock<br/>via Anthropic-compatible adapter]
+    A3[Azure OpenAI or Bedrock, via Anthropic-compatible adapter]
     A4[Direct or via APIM]
-    A5[Same vanilla JS<br/>OR component-ised<br/>OR AEM components]
+    A5[Same vanilla JS, OR component-ised, OR AEM components]
     A6[Azure Cache for Redis]
     A7[Signed tokens via Key Vault]
     A8[Azure API Management]
     A9[Application Insights]
     A10[Front Door + AEM]
-    AV[Mulesoft Validation API<br/>+ deep-link delivery]
+    AV[Mulesoft Validation API, + deep-link delivery]
   end
 
   P1 -.same code.-> A1
