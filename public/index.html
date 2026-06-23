@@ -10,43 +10,37 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
   :root {
-    /* Palette */
-    --racv-navy:    #1f5aa5;
-    --racv-navy-2:  #1967b0;
-    --racv-accent:  #009bde;
-    --racv-ink:     #454849;
-    --racv-muted:   #a7a8aa;
-    --racv-line:    #d9d9d9;
-    --racv-bg:      #f2f2f2;
-    --racv-card:    #ffffff;
-    --racv-warning: #ffbf47;
-    --racv-success: #2e7d32;
+    /* Palette — V2 (see DESIGN_NOTES.md §Palette) */
+    --racv-blue:     #0066CC;
+    --racv-blue-2:   #004E9E;
+    --racv-yellow:   #FFD600;
+    --racv-yellow-2: #E6C100;
+    --racv-ink:      #0A2E5C;
+    --racv-text:     #1A2B4A;
+    --racv-muted:    #6B7589;
+    --racv-line:     #E0E5EF;
+    --racv-bg:       #F4F6FA;
+    --racv-card:     #FFFFFF;
+    --racv-tint:     #EAF1FB;
 
     /* Typography */
     --font-brand: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    --fs-h1: 50px;
-    --fs-h2: 30px;
-    --fs-h3: 20px;
-    --fs-body: 15px;
-    --fs-small: 12.5px;
-    --fs-button: 14px;
+    --fs-h1: 50px; --fs-h2: 30px; --fs-h3: 20px;
+    --fs-body: 15px; --fs-small: 12.5px; --fs-button: 14px;
 
     /* Spacing scale */
-    --s-1: 4px;
-    --s-2: 8px;
-    --s-3: 16px;
-    --s-4: 24px;
-    --s-5: 32px;
+    --s-1: 4px; --s-2: 8px; --s-3: 16px; --s-4: 24px; --s-5: 32px;
 
-    /* Radii — RACV uses square (0) buttons; cards have minimal radius */
-    --r-button: 0;
-    --r-card:   4px;
+    /* Radii */
+    --r-button: 999px;       /* PILL */
+    --r-card:   12px;
+    --r-input:  8px;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
     background: var(--racv-bg);
-    color: var(--racv-ink);
+    color: var(--racv-text);
     font-family: var(--font-brand);
     font-size: var(--fs-body);
     line-height: 1.55;
@@ -73,7 +67,7 @@
     font-size: var(--fs-h3);
     margin: 0;
     font-weight: 600;
-    color: var(--racv-navy);
+    color: var(--racv-blue);
     letter-spacing: 0.1px;
   }
   header p {
@@ -84,13 +78,13 @@
   .hero {
     position: relative;
     height: 140px;
-    background: var(--racv-navy) center/cover no-repeat url('/img/hero-resort.jpg');
+    background: var(--racv-blue) center/cover no-repeat url('/img/hero-resort.jpg');
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
     text-align: center;
-    border-bottom: 3px solid var(--racv-accent);
+    border-bottom: 3px solid var(--racv-yellow);
   }
   .hero::before {
     content: '';
@@ -137,17 +131,17 @@
     background: var(--racv-card);
     border: 1px solid var(--racv-line);
     border-top-left-radius: var(--s-1);
-    color: var(--racv-ink);
+    color: var(--racv-text);
   }
   .msg.user .bubble {
-    background: var(--racv-navy);
+    background: var(--racv-blue);
     color: #fff;
     border-top-right-radius: var(--s-1);
   }
   .bubble h1, .bubble h2, .bubble h3 {
     font-size: var(--fs-h3);
     margin: var(--s-3) 0 var(--s-2);
-    color: var(--racv-navy);
+    color: var(--racv-blue);
     font-weight: 600;
   }
   .msg.user .bubble h1,
@@ -157,7 +151,7 @@
   .bubble ul, .bubble ol { margin: var(--s-2) 0; padding-left: var(--s-4); }
   .bubble li { margin: 2px 0; }
   .bubble a {
-    color: var(--racv-navy);
+    color: var(--racv-blue);
     text-decoration: underline;
     text-underline-offset: 2px;
   }
@@ -186,19 +180,19 @@
     padding: var(--s-3) var(--s-3);
     font: inherit;
     font-size: var(--fs-body);
-    color: var(--racv-ink);
+    color: var(--racv-text);
     background: #fff;
     max-height: 140px;
     outline: none;
     transition: border-color 120ms ease, box-shadow 120ms ease;
   }
   textarea:focus {
-    border-color: var(--racv-navy);
+    border-color: var(--racv-blue);
     box-shadow: 0 0 0 3px rgba(31, 90, 165, 0.18);
   }
   button {
-    background: var(--racv-navy);
-    color: #fff;
+    background: var(--racv-yellow);
+    color: var(--racv-ink);
     border: 0;
     border-radius: var(--r-button);
     padding: var(--s-3) var(--s-4);
@@ -209,9 +203,9 @@
     text-transform: uppercase;
     transition: background-color 120ms ease;
   }
-  button:hover { background: var(--racv-navy-2); }
+  button:hover { background: var(--racv-yellow-2); }
   button:focus-visible {
-    outline: 3px solid var(--racv-warning);
+    outline: 3px solid var(--racv-blue);
     outline-offset: 2px;
   }
   button:disabled { opacity: 0.5; cursor: default; }
