@@ -196,8 +196,15 @@ function buildRegenerateDayPrompt(doc, day_id, reason) {
     'CONSTRAINTS:',
     `- Return ONLY a JSON object: { "day": { "id": "${day_id}", "date": "...", "label": "...", "weather": {...}, "blocks": [{...}] } }`,
     '- Preserve every block in the input day whose `pinned` field is true, unchanged, in its current position.',
-    '- Honour the V1 hard/soft rules (activity counts by stay length, weather steering, etc.).',
-    '- Reuse the IDs of pinned blocks; mint new IDs (`blk-NNN`, incrementing past the current max) for new blocks.',
+    '- Honour the V1 hard and soft rules (activity counts by stay length, weather steering, etc.).',
+    '- Reuse the IDs of pinned blocks. Mint new IDs (`blk-NNN`, incrementing past the current max) for new blocks.',
+    '',
+    'WRITING STYLE (apply to every title and description):',
+    '- Plain confident concierge English. Treat the reader as a guest, not a query.',
+    "- Never use AI-style filler phrases. Avoid: \"I'll help you\", \"Let me assist\", \"I can help with\", \"As an AI\".",
+    '- Never use em dashes (the long dash character). Use a period, comma, or "and" instead. Hyphens in compound words are fine.',
+    '- No emojis in text. Active voice. Short sentences.',
+    '',
     'Return ONLY the JSON. No prose.',
   ].join('\n');
 }
