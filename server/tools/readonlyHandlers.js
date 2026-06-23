@@ -1,5 +1,4 @@
-// Read-only tool handlers shared between the legacy /api/chat agent (server/index.js)
-// and the new chat refinement agent (server/agent/chatAgent.js).
+// Read-only tool handlers used by the chat refinement agent (server/agent/chatAgent.js).
 // Accepts supabase client as a parameter so the module is import-safe in tests.
 
 // ---------------------------------------------------------------------------
