@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your stay — RACV Member Concierge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body class="page-itinerary">
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="RACV home">
+      <img src="/img/racv-logo.svg" alt="RACV" width="120" height="50">
+    </a>
+    <span class="header-divider" aria-hidden="true"></span>
+    <strong class="header-title">Member Concierge</strong>
+    <span class="header-spacer"></span>
+    <a class="header-logout" href="/">Log out</a>
+  </header>
+  <div class="journey-curve" aria-hidden="true">
+    <img src="/img/journey-curve.svg" alt="">
+  </div>
+
+  <div id="app" class="layout">
+    <section id="itinerary-pane" class="pane pane-itinerary" aria-label="Itinerary"></section>
+    <aside id="chat-pane" class="pane pane-chat" aria-label="Refine your stay"></aside>
+  </div>
+
+  <footer class="site-footer">Proof of concept — not affiliated with RACV.</footer>
+
+  <script id="state" type="application/json">{}</script>
+  <script type="module" src="/assets/itinerary.js"></script>
+</body>
+</html>

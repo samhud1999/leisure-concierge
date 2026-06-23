@@ -8,9 +8,11 @@ import { createClient } from '@supabase/supabase-js';
 import { buildSystemPrompt } from './systemPrompt.js';
 import { mountItineraryApi } from './routes/itineraryApi.js';
 import { mountLoginRoute } from './routes/login.js';
+import { mountItineraryPage } from './routes/itineraryPage.js';
 import { fetchLiveEventsFor, CACHE as LIVE_EVENTS_CACHE } from './liveEvents/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
 // ---------------------------------------------------------------------------
 // Config
@@ -322,6 +324,7 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 mountItineraryApi(app, { supabase, anthropic, model: ZAI_MODEL });
 mountLoginRoute(app, { supabase });
+mountItineraryPage(app, { supabase, publicDir: PUBLIC_DIR });
 
 app.post('/api/chat', async (req, res) => {
   try {
