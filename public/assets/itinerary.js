@@ -20,10 +20,31 @@ function renderItinerary(doc) {
   $itin.appendChild(renderHero(doc));
   if (doc.summary?.highlights?.length) $itin.appendChild(renderSummary(doc.summary));
   const nights = doc.stay?.nights ?? 0;
-  const defaultExpanded = nights <= 3
-    ? () => true                                              // all
-    : (i) => i === 0;                                         // today only
-  doc.days?.forEach((d, i) => $itin.appendChild(renderDay(d, defaultExpanded(i))));
+  const isLong = nights >= 7;
+
+  // Default-expanded rule (spec §7):
+  //   nights ≤ 3 → all
+  //   nights 4–6 → today + tomorrow (we approximate today=first day)
+  //   nights ≥ 7 → today only
+  const expandedDefault = (i) => {
+    if (nights <= 3) return true;
+    if (nights <= 6) return i === 0 || i === 1;
+    return i === 0;
+  };
+
+  if (isLong) $itin.appendChild(renderDayNav(doc));
+
+  if (nights > 5) $itin.appendChild(renderToolbar(doc));
+
+  doc.days?.forEach((d, i) => {
+    // Week dividers every 7 days for long stays
+    if (isLong && i > 0 && i % 7 === 0) {
+      const divider = document.createElement('div'); divider.className = 'week-divider';
+      divider.textContent = `Week ${Math.floor(i / 7) + 1}`;
+      $itin.appendChild(divider);
+    }
+    $itin.appendChild(renderDay(d, expandedDefault(i)));
+  });
 }
 
 function renderHero(doc) {
@@ -45,7 +66,7 @@ function renderSummary(summary) {
 }
 
 function renderDay(day, expanded) {
-  const el = document.createElement('section'); el.className = 'day'; el.dataset.dayId = day.id;
+  const el = document.createElement('section'); el.className = 'day'; el.id = day.id; el.dataset.dayId = day.id;
   const w = day.weather || {};
   const weatherPill = w.condition ? `<span class="weather-pill">${escapeHtml(w.condition)} · ${w.temp_max_c ?? '?'}°C · ${w.precip_pct ?? 0}% rain</span>` : '';
   el.innerHTML = `
@@ -82,6 +103,34 @@ function renderBlock(b) {
         </div>
       </div>
     </div>`;
+}
+
+function renderDayNav(doc) {
+  const el = document.createElement('nav'); el.className = 'day-nav'; el.setAttribute('aria-label', 'Jump to day');
+  el.innerHTML = '<h6>Jump to</h6>' + doc.days.map((d, i) => {
+    const weekStart = i % 7 === 0 && i > 0;
+    return (weekStart ? `<div class="week-label">Week ${Math.floor(i/7) + 1}</div>` : '') +
+           `<a href="#${d.id}">${escapeHtml(d.label || d.date)}</a>`;
+  }).join('');
+  return el;
+}
+
+function renderToolbar(doc) {
+  const el = document.createElement('div'); el.className = 'toolbar';
+  el.innerHTML = `
+    <button type="button" class="btn-text" data-action="expand-all">Expand all</button>
+    <button type="button" class="btn-text" data-action="collapse-all">Collapse all</button>`;
+  el.addEventListener('click', (e) => {
+    const action = e.target?.dataset?.action;
+    if (!action) return;
+    document.querySelectorAll('.day-header').forEach((h) => {
+      const body = h.parentElement.querySelector('.day-body');
+      const expand = action === 'expand-all';
+      h.setAttribute('aria-expanded', String(expand));
+      body.hidden = !expand;
+    });
+  });
+  return el;
 }
 
 function renderChatPlaceholder() {

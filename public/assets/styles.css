@@ -135,6 +135,17 @@ label { display: block; font-weight: 600; color: var(--racv-ink); margin: var(--
 .error-wrap { padding: var(--s-5); max-width: 640px; margin: 0 auto; }
 .error-wrap .btn { margin-top: var(--s-3); }
 
+/* Sticky day-jump nav (≥ 7 nights) */
+.day-nav { position: sticky; top: var(--s-3); float: right; margin-left: var(--s-3); background: var(--racv-card); border: 1px solid var(--racv-line); border-radius: var(--r-card); padding: var(--s-3); min-width: 160px; font-size: var(--fs-small); }
+.day-nav h6 { margin: 0 0 var(--s-2); color: var(--racv-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+.day-nav a { display: block; color: var(--racv-blue); text-decoration: none; padding: 2px 0; }
+.day-nav a:hover { text-decoration: underline; }
+.day-nav .week-label { margin-top: var(--s-2); color: var(--racv-ink); font-weight: 600; padding-top: var(--s-2); border-top: 1px solid var(--racv-line); }
+.toolbar { display: flex; gap: var(--s-2); margin: 0 0 var(--s-3); }
+.toolbar .btn-text { background: transparent; border: 1px solid var(--racv-line); border-radius: var(--r-button); padding: 6px 14px; cursor: pointer; font-size: var(--fs-small); color: var(--racv-text); }
+.toolbar .btn-text:hover { background: var(--racv-tint); }
+.week-divider { padding: var(--s-3) 0 var(--s-2); color: var(--racv-muted); font-size: var(--fs-small); text-transform: uppercase; letter-spacing: 1px; }
+
 /* Mobile */
 @media (max-width: 768px) {
   .layout { grid-template-columns: 1fr; }
