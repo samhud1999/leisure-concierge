@@ -12,7 +12,7 @@ const {
   AZURE_AI_FOUNDRY_ENDPOINT,
   AZURE_AI_FOUNDRY_API_KEY,
   AZURE_AI_FOUNDRY_MODEL = 'gpt-5',
-  AZURE_AI_FOUNDRY_API_VERSION = '2024-12-01-preview',
+  AZURE_AI_FOUNDRY_API_VERSION = '2025-04-01-preview',
 } = process.env;
 
 for (const [k, v] of Object.entries({

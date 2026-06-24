@@ -31,6 +31,6 @@ services:
       - key: AZURE_AI_FOUNDRY_MODEL
         value: gpt-5            # swap to gpt-5-mini for cheaper/faster dev iteration
       - key: AZURE_AI_FOUNDRY_API_VERSION
-        value: 2024-12-01-preview
+        value: 2025-04-01-preview
       - key: RESORT_BRAND
         value: RACV
