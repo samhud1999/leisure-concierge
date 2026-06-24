@@ -4,7 +4,7 @@ import { loadStore, pinBlock } from '../itinerary/mutator.js';
 import { fromUrlSafe } from '../tools/tokens.js';
 
 export function mountItineraryApi(app, opts) {
-  const { anthropic, model } = opts;
+  const { llm, model } = opts;
   const supabase = opts.supabase ?? null;
   const generateItinerary = opts.generateItinerary || defaultGenerate;
   const runChatAgent = opts.runChatAgent || defaultRunChatAgent;
@@ -12,7 +12,7 @@ export function mountItineraryApi(app, opts) {
   app.post('/api/itinerary/:token/generate', async (req, res) => {
     const dbToken = fromUrlSafe(req.params.token);
     try {
-      const itinerary = await generateItinerary({ token: dbToken, supabase, anthropic, model });
+      const itinerary = await generateItinerary({ token: dbToken, supabase, llm, model });
       res.json({ itinerary });
     } catch (e) {
       // Persist failure state so the frontend can show an error shell and stop retrying.
@@ -31,7 +31,7 @@ export function mountItineraryApi(app, opts) {
     try {
       // Force regenerate by clearing status first.
       await supabase.from('itineraries').update({ status: 'pending', doc: {} }).eq('token', dbToken);
-      const itinerary = await generateItinerary({ token: dbToken, supabase, anthropic, model });
+      const itinerary = await generateItinerary({ token: dbToken, supabase, llm, model });
       res.json({ itinerary });
     } catch (e) {
       res.status(e.httpStatus || 500).json({ error: e.message, errors: e.errors });
@@ -55,7 +55,7 @@ export function mountItineraryApi(app, opts) {
       const out = await runChatAgent({
         token: dbToken,
         messages: req.body.messages || [],
-        supabase, anthropic, model,
+        supabase, llm, model,
       });
       res.json(out);
     } catch (e) {

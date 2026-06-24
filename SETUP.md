@@ -15,7 +15,7 @@ Browser (chat UI)
       │  HTTPS
       ▼
 Backend server (Node/Express)
-      ├─ Z.ai GLM (Anthropic-compat) ... runs the concierge agent (the system prompt)
+      ├─ Azure AI Foundry (GPT-5) ...... runs the concierge agent (the system prompt)
       ├─ Supabase (service key) ........ members, bookings, resorts, knowledge, events
       └─ Open-Meteo API ................ live weather forecast for the resort + stay dates
 ```
@@ -24,7 +24,7 @@ Backend server (Node/Express)
   role key**, server-side only.
 - The **agent logic** (identity gate, preference menu, itinerary build, security
   guardrails) lives in the backend and is driven by your system prompt.
-- The **browser never sees** the service key or the Z.ai key — only the backend does.
+- The **browser never sees** the service key or the Azure AI Foundry key — only the backend does.
 
 ---
 
@@ -38,7 +38,7 @@ Backend server (Node/Express)
 | 4 | Web app: backend + chat UI | ✅ Me |
 | 5 | **Create the Supabase project** | 👉 You |
 | 6 | **Run `schema.sql` then `seed.sql` in Supabase** | 👉 You |
-| 7 | **Send me your Supabase URL + keys, and a Z.ai API key** | 👉 You |
+| 7 | **Send me your Supabase URL + keys, and an Azure AI Foundry endpoint + API key** | 👉 You |
 | 8 | I wire the `.env`, run it, and we test end-to-end | ✅ Me |
 
 ---
@@ -79,15 +79,18 @@ Backend server (Node/Express)
    > backend `.env`, never in frontend code or a public repo. For a throwaway PoC
    > this is fine; rotate or delete the project when you're done.
 
-### Step 5 — Z.ai API key (powers the agent)
-1. Go to **https://z.ai/model-api** → sign in → **API Keys** → **Create key**.
-2. Copy it and send it to me (also secret).
+### Step 5 — Azure AI Foundry endpoint + API key (powers the agent)
+1. Go to **https://ai.azure.com** → sign in → open (or create) a Foundry project.
+2. Deploy the `gpt-5` model into the project (Models → Deploy → GPT-5).
+3. Open **Settings → Endpoint and keys** and copy:
+   - **Endpoint** — looks like `https://<resource>.services.ai.azure.com/api/projects/<project-name>`
+   - **API key** (treat as secret)
+4. Send both to me, along with the deployment name (default `gpt-5`).
 
-   The backend uses Z.ai's **Anthropic-compatible** endpoint
-   (`https://api.z.ai/api/anthropic`), so the Anthropic SDK is the client and
-   no Anthropic key is needed. Default model is `glm-4.7` (higher-quality
-   tier); swap via `ZAI_MODEL` in `.env` to `glm-4.7-flash` for cheaper/faster
-   dev iteration, or `glm-4.6`/`glm-4.5`/`glm-4.5-air` for other tiers.
+   The backend uses the **OpenAI Node SDK** in Azure mode (`AzureOpenAI` client),
+   which targets the Foundry project endpoint directly. To swap models, change
+   `AZURE_AI_FOUNDRY_MODEL` in `.env` (e.g. `gpt-5-mini` for cheaper/faster dev
+   iteration).
 
    > If you'd rather not paste keys into chat, I'll instead give you a `.env`
    > template and you can fill it in locally and just run the app yourself —

@@ -15,17 +15,43 @@ const ITIN = {
   ],
 };
 
+// Build a fake OpenAI-style LLM client whose `chat.completions.create()` returns
+// a stop-with-text response carrying the given content string.
+function fakeLlm(content) {
+  return {
+    chat: { completions: { async create() {
+      return { choices: [{ finish_reason: 'stop', message: { role: 'assistant', content, tool_calls: null } }] };
+    } } },
+  };
+}
+
+function fakeSupabase(itin) {
+  return { from: () => ({
+    select() { return this; }, eq() { return this; },
+    maybeSingle: async () => ({ data: { doc: itin, version: itin.version }, error: null }),
+  }) };
+}
+
 test('CHAT_TOOLS includes the 7 mutation tools by name', () => {
-  const names = CHAT_TOOLS.map(t => t.name);
+  const names = CHAT_TOOLS.map(t => t.function.name);
   for (const n of ['add_activity','swap_activity','remove_activity','reorder_day','set_preference','regenerate_day','pin_block']) {
     assert.ok(names.includes(n), `missing tool ${n}`);
   }
 });
 
 test('CHAT_TOOLS includes the 5 read-only tools', () => {
-  const names = CHAT_TOOLS.map(t => t.name);
+  const names = CHAT_TOOLS.map(t => t.function.name);
   for (const n of ['member_lookup','get_booking','get_resort_knowledge','get_events','get_weather']) {
     assert.ok(names.includes(n), `missing tool ${n}`);
+  }
+});
+
+test('CHAT_TOOLS are in OpenAI function-tool shape', () => {
+  for (const t of CHAT_TOOLS) {
+    assert.equal(t.type, 'function');
+    assert.equal(typeof t.function?.name, 'string');
+    assert.equal(typeof t.function?.description, 'string');
+    assert.equal(t.function?.parameters?.type, 'object');
   }
 });
 
@@ -36,23 +62,11 @@ test('buildChatSystemPrompt embeds the current itinerary JSON', () => {
 });
 
 test('runChatAgent parses a final-text JSON response and returns reply + ui_hint', async () => {
-  const fakeAnthropic = {
-    messages: {
-      async create() {
-        return {
-          stop_reason: 'end_turn',
-          content: [{ type: 'text', text: '{"reply":"Done.","ui_hint":{"type":"chips","options":["A","B"]}}' }],
-        };
-      },
-    },
-  };
-  const fakeSupabase = { from: () => ({
-    select() { return this; }, eq() { return this; },
-    maybeSingle: async () => ({ data: { doc: ITIN, version: 1 }, error: null }),
-  }) };
   const out = await runChatAgent({
     token: 'tok', messages: [{ role: 'user', content: 'hi' }],
-    supabase: fakeSupabase, anthropic: fakeAnthropic, model: 'glm-test',
+    supabase: fakeSupabase(ITIN),
+    llm: fakeLlm('{"reply":"Done.","ui_hint":{"type":"chips","options":["A","B"]}}'),
+    model: 'gpt-5',
   });
   assert.equal(out.reply, 'Done.');
   assert.equal(out.ui_hint.type, 'chips');
@@ -60,9 +74,22 @@ test('runChatAgent parses a final-text JSON response and returns reply + ui_hint
 });
 
 test('runChatAgent falls back to chips when ui_hint is absent', async () => {
-  const fakeAnthropic = { messages: { async create() { return { stop_reason: 'end_turn', content: [{ type: 'text', text: '{"reply":"OK."}' }] }; } } };
-  const fakeSupabase = { from: () => ({ select() { return this; }, eq() { return this; }, maybeSingle: async () => ({ data: { doc: ITIN, version: 1 }, error: null }) }) };
-  const out = await runChatAgent({ token: 'tok', messages: [{ role: 'user', content: 'hi' }], supabase: fakeSupabase, anthropic: fakeAnthropic, model: 'glm-test' });
+  const out = await runChatAgent({
+    token: 'tok', messages: [{ role: 'user', content: 'hi' }],
+    supabase: fakeSupabase(ITIN),
+    llm: fakeLlm('{"reply":"OK."}'),
+    model: 'gpt-5',
+  });
   assert.equal(out.ui_hint.type, 'chips');
   assert.ok(Array.isArray(out.ui_hint.options));
+});
+
+test('runChatAgent strips ```json``` code fences from the response', async () => {
+  const out = await runChatAgent({
+    token: 'tok', messages: [{ role: 'user', content: 'hi' }],
+    supabase: fakeSupabase(ITIN),
+    llm: fakeLlm('```json\n{"reply":"Fenced."}\n```'),
+    model: 'gpt-5',
+  });
+  assert.equal(out.reply, 'Fenced.');
 });

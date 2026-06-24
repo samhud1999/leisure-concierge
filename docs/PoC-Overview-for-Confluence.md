@@ -2,7 +2,7 @@
 
 > **Audience.** Product, design, engineering, and leadership stakeholders evaluating the leisure-itinerary capability. This document is the alignment artifact for what the production system (Azure, potentially fronted by AEM) should build towards. The PoC behind it is intentionally not the final product. It is a working illustration of capability, brand, and interaction so that we can agree on scope and shape before the real build.
 >
-> **Status.** Live at https://github.com/samhud1999/leisure-concierge. ~30 commits across two phases (chat-only V1, itinerary-first V2). 67/67 unit tests green. Deployable to Render.com for stakeholder demos via a one-file Blueprint.
+> **Status.** Live at https://github.com/samhud1999/leisure-concierge. ~30 commits across two phases (chat-only V1, itinerary-first V2). 69/69 unit tests green. LLM provider: **Azure AI Foundry (GPT-5)** via the OpenAI SDK (`AzureOpenAI` client). Deployable to Render.com for stakeholder demos via a one-file Blueprint.
 >
 > **Read time.** ~20 minutes.
 
@@ -21,7 +21,7 @@
 
 ### Live demo links
 
-11 booking demos across 7 RACV resorts. Two are pre-built (`ready` — open and they render instantly). Nine are `pending` (first visit triggers a fresh ~60-90 s `glm-4.7` build; cached forever after that).
+11 booking demos across 7 RACV resorts. Two are pre-built (`ready` — open and they render instantly). Nine are `pending` (first visit triggers a fresh ~60-120 s `gpt-5` build; cached forever after that).
 
 | Guest | Member # | Surname (for fallback) | Resort | Stay | Status | Deep link |
 |---|---|---|---|---|---|---|
@@ -122,7 +122,7 @@ graph TB
 
   subgraph "External services"
     S[(Supabase Postgres)]
-    Z[Z.ai GLM, Anthropic-compatible]
+    Z[Azure AI Foundry, GPT-5]
     O[Open-Meteo, weather API]
     E[Allow-listed event, sources, web-scraped]
   end
@@ -148,7 +148,7 @@ graph TB
 |---|---|---|
 | Deep-link entry per booking | ✅ | URL-safe tokens pre-issued at migration time |
 | Member-number + surname login fallback | ✅ | Returns same token; same destination |
-| One-shot itinerary generation | ✅ | One LLM call, full context, ~37-90s on `glm-4.7` |
+| One-shot itinerary generation | ✅ | One LLM call, full context, ~60-120s on `gpt-5` |
 | Persistent itinerary state | ✅ | JSONB doc per booking in Supabase; survives refresh / new device |
 | Day-by-day timeline with clear dates | ✅ | "Friday, 27 June" written out; numbered day circle |
 | Weather strip across days | ✅ | Open-Meteo, no API key, ~16-day horizon |
@@ -171,7 +171,7 @@ graph TB
 | Real RACV member SSO | ❌ | Login is light: member# + surname |
 | Email/SMS delivery of the URL | ❌ | Tokens are pre-issued; delivery channel is a production concern |
 | Per-member preference history | ❌ | Preferences are session-scoped to the current itinerary |
-| Multi-region deployment | ❌ | Single dyno; one Z.ai endpoint |
+| Multi-region deployment | ❌ | Single dyno; one Foundry endpoint |
 | Real production observability | ❌ | `console.warn`s and Render log tail |
 | Rate limiting | ❌ | None |
 
@@ -185,7 +185,7 @@ sequenceDiagram
   participant M as Member (browser)
   participant L as Leisure Concierge server
   participant DB as Supabase
-  participant LLM as Z.ai GLM
+  participant LLM as Azure AI Foundry GPT-5
   participant OM as Open-Meteo
   participant EV as Event sources
 
@@ -437,7 +437,7 @@ These are the choices the PoC validated. They should transfer to the Azure build
 | **Adaptive cards in the chat panel** | The five `ui_hint` patterns (chips, radio, multi, form, none) turn the chat into a guided flow rather than free-text. Substantially reduces "blank cursor" friction. |
 | **Vanilla JS for the PoC** | Zero build time, no framework decisions, the entire frontend is readable in one sitting. The cost (no component reuse, no state management library) was acceptable at this scale. |
 | **Read-only tool factory, request-scoped Supabase client** | The chat agent's read-only handlers are constructed per request with the request's Supabase client. This is the right shape for any multi-tenant production environment with RLS. |
-| **Anthropic-SDK-compatible LLM endpoint** | Z.ai's `/api/anthropic` endpoint let us reuse the `@anthropic-ai/sdk` package and tool-use protocol unchanged. The same code targets Claude on Anthropic, Bedrock, or Azure OpenAI with an adapter. |
+| **Provider-portable LLM layer** | The PoC started on Z.ai's Anthropic-compatible endpoint (cheap, fast iteration). When the agreed enterprise model became GPT-5 on Azure AI Foundry, swapping providers was a tool-shape conversion + SDK swap, not a rewrite. The agent loop, tool definitions, and itinerary contract are unchanged in shape. This portability is a north-star property worth preserving in the production build. |
 | **Column whitelists at every read site** | `MEMBER_SAFE` and `BOOKING_SAFE` constants are referenced in every SELECT. Adding a new sensitive column to the schema would require an explicit decision to add it to the whitelist. |
 | **Tokens stored as standard base64, URL-safe-normalised at the boundary** | DB stores `gen_random_bytes(9)` base64; routes convert at request boundaries via helper functions. Simpler than a one-time data migration after we discovered the URL-safety issue. |
 
@@ -451,7 +451,7 @@ Honesty matters here. The PoC made some choices that should not survive the Azur
 | **No rate limiting anywhere** | The PoC trusted its low-traffic demo footprint. Any public deploy would burn LLM cost on a bot. | Per-token and per-IP limits at the API Gateway / APIM layer. |
 | **Member validation is a thin member-number + surname check** | This is **not authentication**, just a soft validation against seed data so the demo is usable. There is no SSO, no second factor, no proof of liveness. | A real validation layer: either a **Mulesoft Validation API** integration that confirms member status on first deep-link open, and/or **deep-link-as-validation** where the link is delivered to a channel RACV already trusts (email/SMS to a verified address). Either path lets us promote the URL-token claim into a validated session. See §10 + §12. |
 | **Tokens are de-facto credentials with no expiry, no signing, no rotation** | Acceptable in a closed demo; production-unsafe. | Tokens issued at booking-confirmation, signed/sealed, scoped to a single booking, expiring 30 days after check-out. |
-| **`generation_failed` only retried via user action** | A transient Z.ai blip turned into a permanent error state until the user clicked "Try again". | Background retry queue with exponential backoff. Member sees the loading shell, not the error. |
+| **`generation_failed` only retried via user action** | A transient LLM blip turned into a permanent error state until the user clicked "Try again". | Background retry queue with exponential backoff. Member sees the loading shell, not the error. |
 | **Live event sources are hardcoded to three Surf-Coast sites** | Demos one resort cleanly, but not generalisable. | Per-resort allow-list table; scheduled crawler; quality scoring per source. |
 | **Long-stay code paths only verified by code review** | No seeded booking >4 nights, so the week-grouping and sticky day-jump nav weren't smoke-tested with real data. | Seed at least one ≥10-night booking; add it to the smoke matrix. |
 | **Weather forecast horizon is ~16 days** | Open-Meteo's limit. Bookings more than ~2 weeks out get generic seasonal judgement. | Schedule a pre-stay regeneration cron 14 days before check-in. Same generator, different trigger. |
@@ -471,7 +471,7 @@ graph LR
   subgraph "PoC (current)"
     P1[Node/Express on Render]
     P2[Supabase Postgres]
-    P3[Z.ai GLM via Anthropic SDK]
+    P3[Azure AI Foundry GPT-5 via OpenAI SDK]
     P4[Open-Meteo direct]
     P5[Vanilla JS in /public]
     P6[In-process event cache]
@@ -481,7 +481,7 @@ graph LR
   subgraph "Azure target"
     A1[App Service or Container Apps]
     A2[Azure Database for PostgreSQL]
-    A3[Azure OpenAI or Bedrock, via Anthropic-compatible adapter]
+    A3[Azure AI Foundry GPT-5 with managed-identity auth + portable provider layer]
     A4[Direct or via APIM]
     A5[Same vanilla JS, OR component-ised, OR AEM components]
     A6[Azure Cache for Redis]
@@ -514,7 +514,7 @@ graph LR
 
 ### What gets replaced (interface kept)
 
-- **LLM provider.** Z.ai → Azure OpenAI (with Anthropic-compatible adapter or directly via OpenAI's tool-use). The agent loop code that uses the Anthropic SDK stays; the SDK config flips.
+- **LLM provider.** Already on Azure AI Foundry (GPT-5) via the OpenAI SDK. Production lift: swap API key auth for managed-identity (Azure AD), wire Foundry's built-in cost/usage telemetry into our observability stack, and pin the API version on a stable (non-`preview`) release once Microsoft promotes one.
 - **Hosting.** Render → Azure App Service or Container Apps. The Express app and Node version are unchanged.
 - **Event-cache backing store.** In-process Map → Azure Cache for Redis. `createTtlCache` swaps to a Redis-backed impl with the same `get / set / has` shape.
 - **Static asset hosting.** Express static → Azure Front Door + Blob Storage, or fronted by AEM.
@@ -567,10 +567,10 @@ These are the things we want a decision on before the Azure build starts:
 | Lines of source code | ~3,500 (excluding tests, plans, snapshots) |
 | Automated tests | 67/67 passing |
 | Test runtime | ~400 ms total |
-| Time to build one itinerary (`glm-4.7`) | 30–90 s (varies by stay length and resort context size) |
+| Time to build one itinerary (`gpt-5`) | ~60–120 s (varies by stay length and resort context size) |
 | Time to render a cached itinerary | <1 s |
 | Time for a chat refinement that calls 1–2 tools | 5–15 s |
-| Latency-cost per chat turn | one Z.ai turn + one cached-doc DB read |
+| Latency-cost per chat turn | one Azure AI Foundry turn + one cached-doc DB read |
 | Seeded demo bookings | 23 across 7 resorts |
 | Pre-issued deep-link URLs | 23 |
 | Live event extractors | 3 (Torquay Cowrie Market, Visit Great Ocean Road, Surf Coast Events JSON-LD) |

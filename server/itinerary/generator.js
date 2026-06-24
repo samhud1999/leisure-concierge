@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { validateGenerated, softRepair } from './schema.js';
 import { regenerateHighlights } from './summarizer.js';
 
@@ -89,7 +88,7 @@ export function assembleDoc({ generated, wrapper }) {
 // --- Orchestration --------------------------------------------------------
 // (Tested via the route integration test in Task 5, not here — a unit test
 // would require a Supabase mock heavier than the value it adds.)
-export async function generateItinerary({ token, supabase, anthropic, model, signal }) {
+export async function generateItinerary({ token, supabase, llm, model, signal }) {
   // 1. Load itinerary row + booking + member + resort + events + weather.
   const { data: row, error } = await supabase
     .from('itineraries')
@@ -142,9 +141,9 @@ export async function generateItinerary({ token, supabase, anthropic, model, sig
     weather,
   };
 
-  // 2. Call GLM once.
+  // 2. Call the model once.
   const prompt = buildGeneratorPrompt(brief);
-  const generated = await callGenerator({ anthropic, model, prompt, signal });
+  const generated = await callGenerator({ llm, model, prompt, signal });
 
   // 3. Soft-repair + validate.
   const repaired = softRepair(generated, { weather: { days: weather } });
@@ -171,20 +170,26 @@ export async function generateItinerary({ token, supabase, anthropic, model, sig
   return full;
 }
 
-// --- Internal: GLM call with one-retry parse + validate retry --------------
-async function callGenerator({ anthropic, model, prompt, signal, attempt = 0 }) {
-  const resp = await anthropic.messages.create({
-    model, max_tokens: 6000, system: prompt, messages: [{ role: 'user', content: 'Produce the JSON now.' }],
+// --- Internal: model call with one-retry parse + validate retry -----------
+async function callGenerator({ llm, model, prompt, signal, attempt = 0 }) {
+  const resp = await llm.chat.completions.create({
+    model,
+    max_completion_tokens: 6000,
+    messages: [
+      { role: 'system', content: prompt },
+      { role: 'user',   content: 'Produce the JSON now.' },
+    ],
+    response_format: { type: 'json_object' },
   }, { signal });
-  const text = resp.content.filter(b => b.type === 'text').map(b => b.text).join('');
-  const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+  const text = resp.choices?.[0]?.message?.content ?? '';
+  const cleaned = String(text).replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
   try {
     return JSON.parse(cleaned);
   } catch (e) {
     if (attempt < 1) {
       const retryPrompt = prompt +
         "\n\nYour last response was not valid JSON. Return ONLY the JSON object starting with `{`. No prose, no code fences.";
-      return callGenerator({ anthropic, model, prompt: retryPrompt, signal, attempt: attempt + 1 });
+      return callGenerator({ llm, model, prompt: retryPrompt, signal, attempt: attempt + 1 });
     }
     throw Object.assign(new Error('generator_unparseable'), { httpStatus: 502, raw: text });
   }

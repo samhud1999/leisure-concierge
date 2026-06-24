@@ -26,7 +26,7 @@ It is a working prototype suitable for a stakeholder demo. It is not production-
 |   POST /api/login              -> returns { token, redirect: '/i/<token>' }           |
 |   GET  /i/<token>              HTML shell with inlined itinerary JSON in <script>     |
 |                                or, when status='pending', a personalised loading shell|
-|   POST /api/itinerary/<token>/generate    First-visit build (60-90s on glm-4.7)       |
+|   POST /api/itinerary/<token>/generate    First-visit build (60-90s on gpt-5)         |
 |   GET  /api/itinerary/<token>?since=N     Poll for updated version after a chat turn  |
 |   POST /api/itinerary/<token>/chat        Run the 12-tool refinement agent loop       |
 |   POST /api/itinerary/<token>/pin         Direct pin/unpin (no LLM round-trip)        |
@@ -46,14 +46,14 @@ It is a working prototype suitable for a stakeholder demo. It is not production-
 |     itineraryApi.js ....... five JSON endpoints under /api/itinerary/<token>/...      |
 |                                                                                       |
 |   itinerary/                                                                          |
-|     generator.js .......... One-shot GLM build (V1) with weather field mapping        |
+|     generator.js .......... One-shot LLM build (V1) with weather field mapping        |
 |     mutator.js ............ 7 mutation operations (add/swap/remove/reorder/           |
 |                              pin/preference/regenerate_day)                           |
 |     schema.js ............. JSON shape validators + soft repairs                      |
 |     summarizer.js ......... Regenerates summary.highlights after any mutation         |
 |                                                                                       |
 |   agent/                                                                              |
-|     chatAgent.js .......... Runs the 12-tool Anthropic-SDK loop with ui_hint contract |
+|     chatAgent.js .......... Runs the 12-tool OpenAI-SDK loop with ui_hint contract    |
 |     chatTools.js .......... Tool definitions (5 read-only + 7 mutation = 12)          |
 |     systemPrompt.js ....... Refinement persona + writing-style rules                  |
 |                                                                                       |
@@ -79,15 +79,15 @@ It is a working prototype suitable for a stakeholder demo. It is not production-
          |                            |                      |
          v                            v                      v
    +-------------+         +-------------------+      +----------------+
-   |  Supabase   |         |  Z.ai             |      |  Open-Meteo    |
-   |  Postgres   |         |  api.z.ai/api/    |      |  forecast API  |
-   |             |         |  anthropic        |      |  (no API key)  |
-   | members     |         |  (Anthropic-SDK   |      |                |
-   | bookings    |         |   compatible      |      |                |
-   | resorts +   |         |   endpoint)       |      |                |
-   |   amenities |         |  default model:   |      |                |
-   |   dining    |         |  glm-4.7          |      |                |
-   |   experi.   |         |                   |      |                |
+   |  Supabase   |         |  Azure AI         |      |  Open-Meteo    |
+   |  Postgres   |         |  Foundry          |      |  forecast API  |
+   |             |         |  project          |      |  (no API key)  |
+   | members     |         |  endpoint         |      |                |
+   | bookings    |         |  (OpenAI SDK,     |      |                |
+   | resorts +   |         |   AzureOpenAI     |      |                |
+   |   amenities |         |   client)         |      |                |
+   |   dining    |         |  default model:   |      |                |
+   |   experi.   |         |  gpt-5            |      |                |
    |   room_type |         +-------------------+      +----------------+
    | events +                                              ^
    |   event_src                                           |
@@ -104,13 +104,13 @@ It is a working prototype suitable for a stakeholder demo. It is not production-
 
 | Choice | Why |
 |---|---|
-| **Z.ai GLM via Anthropic-compatible endpoint** | Lets us use the standard `@anthropic-ai/sdk` package and tool-use protocol unchanged. Swapping models is one env var (`ZAI_MODEL=glm-4.7-flash` for cheaper iteration). |
+| **Azure AI Foundry (GPT-5) via the OpenAI SDK** | Standard `openai` package targeted at the Foundry project endpoint via the `AzureOpenAI` client. Keys live in `AZURE_AI_FOUNDRY_*` env vars; swapping models is one env var (`AZURE_AI_FOUNDRY_MODEL=gpt-5-mini` for cheaper iteration). Earlier builds used Z.ai GLM via the Anthropic-compatible endpoint; we switched once a Foundry project was provisioned, since Foundry is the agreed enterprise hosting path. |
 | **Single JSONB doc per booking, not normalised tables** | Mutations are whole-doc-atomic. Reads are always "give me the whole thing". Schema evolves without migrations. |
 | **Vanilla JS, no framework** | No build step. The frontend is two HTML files + three JS modules + one CSS file. Renders fast, easy to read. |
 | **Tools, not prose** | The chat agent never regenerates the itinerary. It calls focused mutation tools that update specific blocks/days. Limits LLM creativity to a narrow contract; everything else is deterministic code. |
 | **Token deep links with login fallback** | The primary entry is a shareable URL; the form is for members who have lost the link. Both land on the same `/i/<token>` view. |
 | **In-process 12h cache for live events** | Live event fetches are slow and rate-limited. Caching means the second hit on the same resort within 12h pays no network cost. |
-| **glm-4.7 as the default model, not flash** | Better itinerary quality + better instruction-following for the writing-style rules (no AI-speak, no em dashes, named-venue variety). Pays ~2× the build time in exchange. |
+| **gpt-5 as the default model, not gpt-5-mini** | Better itinerary quality + better instruction-following for the writing-style rules (no AI-speak, no em dashes, named-venue variety). Pays the bigger-model build time in exchange. |
 | **HTML `<details>` for day accordions, not custom toggle JS** | Native disclosure widget; works without JavaScript; print-friendly. |
 
 ---
@@ -188,9 +188,9 @@ The `bookings.other_guest_names` column exists in the schema for realism but is 
 ```
 pending  ─────────────────────────────►  ready
    │     POST /api/itinerary/<t>/generate
-   │     (one GLM call, 30-90s)
+   │     (one LLM call, 30-90s)
    │
-   │ on transient GLM/network error:
+   │ on transient LLM/network error:
    ▼
 generation_failed  ──── retry via "Try again" or /regenerate ──►  pending  ─►  ready
                         (no manual SQL needed; the failed status is just a flag)
@@ -239,7 +239,7 @@ The `itineraries` table is pre-seeded with one row per booking at migration time
 3. Server runs the agent loop:
      - Load current itinerary doc
      - Build system prompt with the doc embedded + the user message
-     - Anthropic SDK call with 12 tools (5 read-only + 7 mutation)
+     - OpenAI SDK call with 12 tools (5 read-only + 7 mutation)
      - Agent may call get_resort_knowledge, get_events, etc. for context
      - Agent calls set_preference({key:'dietary', value:'gluten-free'})
      - Mutator validates, persists, bumps version, regenerates highlights
@@ -368,7 +368,7 @@ The PoC's member-number + surname fallback at `/api/login` exists only because t
 
 - No rate limiting on any endpoint. A bot crawling random tokens would 404 most of the time, but the `/generate` route is expensive per call.
 - No CSRF protection on the JSON POST routes (cookies are not used; the token is the auth).
-- No automated rotation of the Z.ai key.
+- No automated rotation of the Azure AI Foundry key. (Production: managed-identity binding via Azure RBAC would remove the key entirely.)
 
 ---
 
@@ -387,15 +387,15 @@ The PoC's member-number + surname fallback at `/api/login` exists only because t
 | `reorder_day` | write | chat agent | Reorder blocks within a day by block_id list. Validates same-length. |
 | `set_preference` | write | chat agent | Write one of `party_kind / dietary / pace / interests`. Agent is instructed to follow with `regenerate_day` on impacted days. |
 | `pin_block` | write | chat agent + direct API | Toggle a block's `pinned` flag. Used by inline Pin button without LLM round-trip. |
-| `regenerate_day` | write (LLM) | chat agent | Rewrite ONE day with a focused GLM call. Preserves pinned-block positions by index. Soft-repairs returned blocks. |
+| `regenerate_day` | write (LLM) | chat agent | Rewrite ONE day with a focused GPT-5 call. Preserves pinned-block positions by index. Soft-repairs returned blocks. |
 
-The V1 generator (`generator.js`) is not a tool — it's a one-shot direct GLM call invoked by `POST /generate`. It runs only when the doc is empty (first visit) or after `POST /regenerate`.
+The V1 generator (`generator.js`) is not a tool — it's a one-shot direct GPT-5 call invoked by `POST /generate`. It runs only when the doc is empty (first visit) or after `POST /regenerate`.
 
 ---
 
 ## 8. What is tested
 
-### Automated (67 tests, all green, run via `cd server && npm test`)
+### Automated (69 tests, all green, run via `cd server && npm test`)
 
 | Suite | File | Tests | What it covers |
 |---|---|---|---|
@@ -409,25 +409,25 @@ The V1 generator (`generator.js`) is not a tool — it's a one-shot direct GLM c
 | **itinerary/itineraryApi** | `itinerary/__tests__/itineraryApi.test.js` | 4 | `POST /generate` happy path, 404 on missing token, 502 on `generator_unparseable`, status flip to `generation_failed` on throw. |
 | **itinerary/login** | `itinerary/__tests__/login.test.js` | 3 | Valid creds → token; no-match → 401 with no field leak; multi-booking member → returns most-recent itinerary. |
 | **itinerary/itineraryPage** | `itinerary/__tests__/itineraryPage.test.js` | 3 | Inlines full doc when ready; inlines `{status:"pending"}` shell otherwise; 404 on missing token. |
-| **itinerary/mutator** | `itinerary/__tests__/mutator.test.js` | 11 | All 7 mutation ops + the regenerateDay pinned-position preservation + softRepair on GLM output. |
+| **itinerary/mutator** | `itinerary/__tests__/mutator.test.js` | 11 | All 7 mutation ops + the regenerateDay pinned-position preservation + softRepair on model output. |
 | **agent/chatAgent** | `agent/__tests__/chatAgent.test.js` | 5 | All 12 tool definitions present; system prompt embeds itinerary JSON; runChatAgent parses ui_hint; falls back to chips when ui_hint absent. |
 
-Test runners use Node's built-in `node:test` and `node:assert/strict`. No external test framework, no test database — tests use fake supabase/anthropic clients injected via dependency injection. Fast (~400 ms total) and offline.
+Test runners use Node's built-in `node:test` and `node:assert/strict`. No external test framework, no test database — tests use fake supabase/llm clients injected via dependency injection. Fast (~400 ms total) and offline.
 
 ### Manual smoke tests (committed evidence)
 
-- **V1 generator end-to-end snapshot.** `server/scripts/smoke-generate.mjs` runs the real generator against Eleanor's RACV-TQ-3001 booking against the real Z.ai endpoint and writes the result to `server/scripts/snapshots/100201-RACV-TQ-3001.json`. Committed and grep-verified PII-clean.
+- **V1 generator end-to-end snapshot.** `server/scripts/smoke-generate.mjs` runs the real generator against Eleanor's RACV-TQ-3001 booking. The committed snapshot at `server/scripts/snapshots/100201-RACV-TQ-3001.json` was produced against the prior Z.ai GLM endpoint (re-run pending against Azure AI Foundry); grep-verified PII-clean.
 - **Live `/api/chat` round-trip.** Performed during V2 Phase 4 verification: log in as 100201/Whitman, chat panel triggers `member_lookup`, security guardrail holds (no surname leakage in 401).
-- **End-to-end V1 build on the deployed model.** Andre Kaplan rebuild after a transient Z.ai network blip: HTTP 200, 3.5 KB itinerary JSON, 37 seconds wall-clock on glm-4.7. Re-runnable.
+- **End-to-end V1 build on the deployed model.** Andre Kaplan rebuild after a transient network blip on the prior Z.ai stack: HTTP 200, 3.5 KB itinerary JSON, 37 seconds wall-clock. Re-runnable on Azure AI Foundry once the Foundry-deployed `gpt-5` is wired into a non-local environment.
 - **Playwright visual smoke of the chat panel.** V2 Task 17: confirmed chip rendering, composer presence, yellow Send button, user-message bubble after a chip tap. (No headless browser tests are in CI; this was a one-off visual confirmation.)
 
 ### What is NOT tested
 
-- **Full chat-to-mutator integration.** No end-to-end test that simulates "user says X → chat agent calls mutator Y → doc changes Z". The agent loop is tested with a mocked Anthropic client; the mutator is tested standalone. Their composition is exercised only by manual chat sessions.
+- **Full chat-to-mutator integration.** No end-to-end test that simulates "user says X → chat agent calls mutator Y → doc changes Z". The agent loop is tested with a mocked OpenAI client; the mutator is tested standalone. Their composition is exercised only by manual chat sessions.
 - **Browser rendering.** No automated test confirms the page renders without console errors, the chips are accessible, or the mobile FAB sheet animates correctly. Visual verification has been manual via DevTools.
 - **Long-stay code paths.** No seed booking is ≥ 7 nights, so the week-grouping, sticky day-jump nav, and "today + tomorrow expanded" defaults for 4–6 night stays have only code-review coverage. Verified by hand-editing one booking's check_out and reloading.
 - **Resort imagery 404 fallback.** The `<img onerror>` is by inspection; no test confirms a missing JPG hides cleanly.
-- **Z.ai-down behaviour.** Manually observed once during a transient network blip: the route returns 502, the row stamps `generation_failed`, the frontend shows the error shell with "Try again". No automated test for the persistence path.
+- **LLM-down behaviour.** Manually observed once during a transient Z.ai network blip: the route returns 502, the row stamps `generation_failed`, the frontend shows the error shell with "Try again". No automated test for the persistence path. Should re-verify against Azure AI Foundry once the new stack has accumulated some runtime.
 - **Cross-browser, accessibility, performance.** No Lighthouse, axe, or load-test runs against this codebase.
 
 ### Code-review coverage
@@ -441,7 +441,7 @@ Every committed change went through a per-task reviewer (per-task subagent under
 | Dependency | Used for | Failure mode |
 |---|---|---|
 | **Supabase Postgres** | All persistent data (members, bookings, resorts, events, itineraries, internal_docs) | Tool calls return `{ error: 'lookup_failed' }`. Login returns 401 (no member found). New itinerary builds fail because the booking lookup throws. Existing cached docs would still render if not for the fact that they're stored IN Supabase, so realistically the whole app is dead. |
-| **Z.ai (Anthropic-compat endpoint)** | All LLM calls (V1 build, chat refinement, regenerate_day) | First visits stall at the loading shell and eventually time out → `generation_failed`. Cached itineraries (`status='ready'`) keep working in read-only mode. Chat refinement throws and shows the user a brief error message. |
+| **Azure AI Foundry (GPT-5)** | All LLM calls (V1 build, chat refinement, regenerate_day) | First visits stall at the loading shell and eventually time out → `generation_failed`. Cached itineraries (`status='ready'`) keep working in read-only mode. Chat refinement throws and shows the user a brief error message. |
 | **Open-Meteo** | Daily weather forecast (no API key required) | The generator's `mapWeather` returns `[]`; itinerary days have empty weather objects; weather-aware steering becomes a no-op. Page still renders. |
 | **Live event sources** (3 allow-listed Surf Coast / Torquay sites) | Optional augmentation of seed events | The orchestrator skips failed sources with a `console.warn` and returns whatever else came back, including the seed events. App still works. |
 | **GitHub** | Source hosting + Render's deploy source | If GitHub is down, Render can't auto-deploy on push, but the existing dyno keeps running. |
@@ -455,9 +455,10 @@ Every committed change went through a per-task reviewer (per-task subagent under
 |---|---|---|---|---|
 | `SUPABASE_URL` | **yes** | none | Supabase client | Project URL (e.g. `https://xxx.supabase.co`). |
 | `SUPABASE_SERVICE_ROLE_KEY` | **yes** | none | Supabase client | JWT that bypasses RLS. Server-side only. |
-| `ZAI_API_KEY` | **yes** | none | Anthropic SDK | Z.ai API key (from `https://z.ai/model-api`). |
-| `ZAI_MODEL` | no | `glm-4.7` | Anthropic SDK `model` param | Supported: `glm-4.7`, `glm-4.7-flash`, `glm-4.6`, `glm-4.5`, `glm-4.5-air`. |
-| `ZAI_BASE_URL` | no | `https://api.z.ai/api/anthropic` | Anthropic SDK `baseURL` | The Anthropic-compatible endpoint at Z.ai. |
+| `AZURE_AI_FOUNDRY_ENDPOINT` | **yes** | none | OpenAI SDK (`AzureOpenAI`) `endpoint` | Foundry project endpoint, e.g. `https://<resource>.services.ai.azure.com/api/projects/<project>`. |
+| `AZURE_AI_FOUNDRY_API_KEY` | **yes** | none | OpenAI SDK `apiKey` | API key from the Foundry project's "Endpoint and keys" page. |
+| `AZURE_AI_FOUNDRY_MODEL` | no | `gpt-5` | OpenAI SDK `deployment` + `model` | Deployment name in the Foundry project. Other options if deployed: `gpt-5-mini`, `gpt-5-nano`. |
+| `AZURE_AI_FOUNDRY_API_VERSION` | no | `2024-12-01-preview` | OpenAI SDK `apiVersion` | Azure OpenAI preview API version that supports the GPT-5 family. |
 | `PORT` | no | `3000` | Express | Listen port. Render injects its own. |
 | `RESORT_BRAND` | no | `RACV` | Startup log line only | Display label; not used for any logic. |
 
@@ -476,7 +477,7 @@ Every committed change went through a per-task reviewer (per-task subagent under
 | **Weather forecast horizon** | Open-Meteo ~16 days; later dates get seasonal judgement | Same data source is fine; for stays >16 days out, schedule a pre-stay regeneration cron 14 days before check-in |
 | **Cache for live events** | In-process Map, vanishes on dyno restart | Postgres-backed `event_cache` table or Redis |
 | **Multi-region** | One Render dyno (Singapore by default) | Multi-region behind a CDN; sticky sessions or shared cache |
-| **Observability** | `console.warn` + Render's log tail | Structured logs (pino), errors to a sink (Sentry), Z.ai cost metric per token |
+| **Observability** | `console.warn` + Render's log tail | Structured logs (pino), errors to a sink (Sentry), Azure AI Foundry cost metric per token (via the project's built-in telemetry) |
 | **Test breadth** | Unit tests only; manual smoke for chat-loop integration | Playwright end-to-end suite; daily cron that generates a booking and asserts shape; load test for `/generate` concurrency |
 | **Long-stay validation** | Code-review only | Add ≥ 7-night seed bookings so the week-grouping path is exercised by the snapshot smoke |
 | **A11y** | Semantic HTML + ARIA on the key controls | Lighthouse a11y audit, focus management on the mobile chat sheet, screen-reader pass on the timeline |
@@ -491,7 +492,7 @@ Every committed change went through a per-task reviewer (per-task subagent under
 - **Day** — one calendar day in the stay. Always contiguous from `check_in` to `check_out`. Day count = `nights + 1`.
 - **Doc** — the persisted JSON in `itineraries.doc`. Mutated only via the mutator's seven operations.
 - **Token** — the URL-safe identifier in `/i/<token>`. Bound to one booking. URL-safe base64 of `gen_random_bytes(9)`.
-- **V1 build** — the one-shot GLM call that generates the initial itinerary from booking + resort + events + weather context. Distinct from chat refinement, which uses tools.
+- **V1 build** — the one-shot LLM call (GPT-5 via Azure AI Foundry) that generates the initial itinerary from booking + resort + events + weather context. Distinct from chat refinement, which uses tools.
 - **Chat refinement** — the subsequent multi-turn agent loop that mutates the doc via tools. Never regenerates the whole itinerary; always makes the smallest change that satisfies the request.
 - **Pinned block** — `pinned: true` flag on a block. Resists `swap_activity`, `remove_activity`, and is preserved at its original index by `regenerate_day`.
 - **ui_hint** — the chat agent's structured suggestion for the frontend's next-question UI. One of: chips, radio, multi, form, none.

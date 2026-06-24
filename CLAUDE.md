@@ -1,6 +1,6 @@
 # CLAUDE.md — project context for Claude Code
 
-Leisure Concierge **V2** (itinerary-first): a standalone web app for RACV resort members (Node/Express + static frontend, Supabase Postgres, Z.ai GLM via the Anthropic-compatible endpoint, Open-Meteo) that builds personalised stay itineraries. Members deep-link via `/i/<token>` or log in at `/`, see an auto-generated day-by-day itinerary, and refine it via an adaptive-card chat panel.
+Leisure Concierge **V2** (itinerary-first): a standalone web app for RACV resort members (Node/Express + static frontend, Supabase Postgres, GPT-5 via Azure AI Foundry, Open-Meteo) that builds personalised stay itineraries. Members deep-link via `/i/<token>` or log in at `/`, see an auto-generated day-by-day itinerary, and refine it via an adaptive-card chat panel.
 
 ## Start here
 1. Read **HANDOVER.md** in full — V2 architecture, quick start, and how the entry flow works.
@@ -11,7 +11,7 @@ Leisure Concierge **V2** (itinerary-first): a standalone web app for RACV resort
 ```bash
 # In Supabase SQL Editor, run in order:
 #   db/schema.sql, db/seed.sql, db/seed_docs.sql, db/v2_itineraries.sql
-cd server && cp .env.example .env   # fill in Supabase + Z.ai keys
+cd server && cp .env.example .env   # fill in Supabase + Azure AI Foundry keys
 npm install && npm start            # → http://localhost:3000
 # log in 100201 / Whitman, or open /i/<token>
 ```

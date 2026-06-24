@@ -2,7 +2,7 @@
 
 > **Updated for V2** (itinerary-first artifact at `/i/<token>` + login at `/` + chat refinement). Baseline commit `57bd550`.
 
-**Goal:** Stand up V2 as a publicly reachable demo URL so a stakeholder can open it on a phone or laptop, deep-link to their itinerary (or log in with member-number + surname), and refine it via the chat panel. Backend must complete the V1-itinerary build (one ~60-120 s GLM call on `glm-4.7`) and the multi-tool refinement loop (often 20–90 s per chat turn) without timing out, and must hold a shared in-process TTL cache for live events across requests.
+**Goal:** Stand up V2 as a publicly reachable demo URL so a stakeholder can open it on a phone or laptop, deep-link to their itinerary (or log in with member-number + surname), and refine it via the chat panel. Backend must complete the V1-itinerary build (one ~60-120 s LLM call to GPT-5 on Azure AI Foundry) and the multi-tool refinement loop (often 20–90 s per chat turn) without timing out, and must hold a shared in-process TTL cache for live events across requests.
 
 **Recommendation: Render.com.** Render runs Express natively as a long-running process, has no per-request execution-time cap (only an idle shutdown after 15 min on free, that wakes on next request ~30 s), and is one `render.yaml` away from deploy. Free is fine for a single-stakeholder demo; for any shared link, upgrade to Starter ($7/mo) so the cold-start doesn't bite during a live walk-through.
 
@@ -12,7 +12,7 @@
 
 Vercel is great for static frontends + short serverless functions. This app is neither. Three blockers:
 
-1. **Function timeout.** Hobby = 10 s. Pro = 60 s. Enterprise = 90 s. The V1 generator is **one** GLM call with the entire context pre-loaded — measured at ~38 s on `glm-4.7-flash` (V2 Task 6 smoke); `glm-4.7` (the current default) is closer to 60-120 s. The chat refinement loop adds 5-6 tool turns on top. Hobby fails fast; Pro fails slow but still fails on the cold build.
+1. **Function timeout.** Hobby = 10 s. Pro = 60 s. Enterprise = 90 s. The V1 generator is **one** LLM call with the entire context pre-loaded — historically ~38 s on `glm-4.7-flash` (V2 Task 6 smoke); `gpt-5` (the current default on Azure AI Foundry) is closer to 60-120 s. The chat refinement loop adds 5-6 tool turns on top. Hobby fails fast; Pro fails slow but still fails on the cold build.
 2. **In-process cache evaporates.** `server/liveEvents/index.js` exports a `CACHE` singleton with a 12 h TTL that lives in Node memory and is also passed into the V2 chat agent's read-handlers (`server/tools/readonlyHandlers.js`). Vercel functions are stateless and spawn fresh per request — the cache resets on every invocation, so the live-fetch deduplication silently doesn't happen.
 3. **Express on Vercel is second-class.** It works (via `@vercel/node` + a wrapper), but you give up streaming, hot modules, and the dev parity the team currently has with `npm start`. And the file-based static serving (`/img/*`, `/assets/*`, `/login.html`, `/itinerary.html`) needs to be moved onto Vercel's static CDN instead of Express, which is its own small refactor.
 
@@ -45,7 +45,7 @@ No application code changes are needed — the server already reads `PORT` from 
 
 Before deploying anything, prove the V2 build works locally end-to-end. If any of these fail, deployment will too.
 
-- [ ] **`.env` is populated.** In `server/.env` confirm `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ZAI_API_KEY` are all non-empty. `ZAI_MODEL=glm-4.7` is the current default.
+- [ ] **`.env` is populated.** In `server/.env` confirm `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `AZURE_AI_FOUNDRY_ENDPOINT`, `AZURE_AI_FOUNDRY_API_KEY` are all non-empty. `AZURE_AI_FOUNDRY_MODEL=gpt-5` is the current default.
 - [ ] **Supabase tables are seeded.** In Supabase SQL Editor confirm:
   ```sql
   select count(*) from resorts;        -- 10
@@ -55,8 +55,8 @@ Before deploying anything, prove the V2 build works locally end-to-end. If any o
   ```
   If counts are short, run the relevant SQL file from `db/` (`schema.sql` → `seed.sql` → `seed_docs.sql` → `v2_itineraries.sql` → `v2_seed_extra_members.sql`).
 - [ ] **`npm test` passes.** `cd server && npm test` → `pass 67`.
-- [ ] **`/api/health` responds.** `npm start`, then `curl -s http://localhost:3000/api/health` → `{"ok":true,"model":"glm-4.7"}`.
-- [ ] **An end-to-end V1 build succeeds against GLM.** Log in as `100201` / `Whitman`, navigate to `/i/<token>`, wait for the itinerary to render. This proves the Z.ai endpoint + Supabase + the V2 pipeline are all wired correctly before you put it on the internet. First visit takes ~60-120 s on `glm-4.7`; subsequent visits serve the cached JSON instantly.
+- [ ] **`/api/health` responds.** `npm start`, then `curl -s http://localhost:3000/api/health` → `{"ok":true,"model":"gpt-5"}`.
+- [ ] **An end-to-end V1 build succeeds against GPT-5.** Log in as `100201` / `Whitman`, navigate to `/i/<token>`, wait for the itinerary to render. This proves the Azure AI Foundry endpoint + Supabase + the V2 pipeline are all wired correctly before you put it on the internet. First visit takes ~60-120 s on `gpt-5`; subsequent visits serve the cached JSON instantly.
 
 ---
 
@@ -80,7 +80,7 @@ Render deploys from a git remote. The app currently has only a local git history
   gh repo create racv-concierge-poc --private --source=. --remote=origin
   git push -u origin main
   ```
-  Verify on github.com that `server/.env` is NOT in the file list. If it is, treat as a leaked-secret incident: rotate the `ZAI_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` immediately, delete the file from the remote, and re-push. (The local `.gitignore` should prevent this; check it pre-push.)
+  Verify on github.com that `server/.env` is NOT in the file list. If it is, treat as a leaked-secret incident: rotate the `AZURE_AI_FOUNDRY_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` immediately, delete the file from the remote, and re-push. (The local `.gitignore` should prevent this; check it pre-push.)
 
 ---
 
@@ -108,12 +108,14 @@ services:
         sync: false               # set in dashboard; never committed
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
-      - key: ZAI_API_KEY
+      - key: AZURE_AI_FOUNDRY_ENDPOINT
         sync: false
-      - key: ZAI_MODEL
-        value: glm-4.7            # safe to commit — not a secret. Use `glm-4.7-flash` for cheaper dev iteration.
-      - key: ZAI_BASE_URL
-        value: https://api.z.ai/api/anthropic
+      - key: AZURE_AI_FOUNDRY_API_KEY
+        sync: false
+      - key: AZURE_AI_FOUNDRY_MODEL
+        value: gpt-5              # safe to commit — not a secret. Use `gpt-5-mini` for cheaper dev iteration.
+      - key: AZURE_AI_FOUNDRY_API_VERSION
+        value: 2024-12-01-preview
       - key: RESORT_BRAND
         value: RACV
 ```
@@ -142,7 +144,8 @@ services:
 - [ ] **Step 3: Paste the three secrets.**
   - `SUPABASE_URL` = your Project URL (e.g. `https://xxxxxxxx.supabase.co`)
   - `SUPABASE_SERVICE_ROLE_KEY` = your service-role key (server-side only)
-  - `ZAI_API_KEY` = your Z.ai key
+  - `AZURE_AI_FOUNDRY_ENDPOINT` = your Foundry project endpoint (e.g. `https://<resource>.services.ai.azure.com/api/projects/<project>`)
+  - `AZURE_AI_FOUNDRY_API_KEY` = your Foundry project API key
 
   Render stores these encrypted at rest; they appear in the dashboard but never in build logs.
 
@@ -150,8 +153,8 @@ services:
 
 - [ ] **Step 5: Watch the first deploy.** The "Logs" tab will stream the startup line:
   ```
-    RACV Concierge running:  http://localhost:10000
-    Model: glm-4.7 (via https://api.z.ai/api/anthropic)   Brand: RACV
+    Leisure Concierge running:  http://localhost:10000
+    Model: gpt-5 (via Azure AI Foundry)   Brand: RACV
   ```
   (Render assigns its own internal port via `PORT`, hence `10000` not `3000`.)
 
@@ -168,7 +171,7 @@ The functional checklist from `HANDOVER.md §7` becomes the smoke test for the d
   ```bash
   curl -s https://racv-concierge.onrender.com/api/health
   ```
-  Expect `{"ok":true,"model":"glm-4.7"}`. If `404` or `502`, check the Logs tab — usually a missing env var.
+  Expect `{"ok":true,"model":"gpt-5"}`. If `404` or `502`, check the Logs tab — usually a missing env var.
 
 - [ ] **Step 2: Static assets.**
   - `https://racv-concierge.onrender.com/` → branded chat UI
@@ -205,7 +208,7 @@ If you're about to send the URL to anyone outside your immediate team:
 
 ## Task 6: Pre-warm the demo itineraries (recommended)
 
-The 7 new demo bookings from `db/v2_seed_extra_members.sql` (Andre Kaplan, Natasha Sokolov, etc.) each carry a pre-issued token but their itinerary doc is empty until the first visit triggers a `glm-4.7` build (~60-120 s). Pre-warming means every shareable URL renders instantly when a stakeholder opens it.
+The 7 new demo bookings from `db/v2_seed_extra_members.sql` (Andre Kaplan, Natasha Sokolov, etc.) each carry a pre-issued token but their itinerary doc is empty until the first visit triggers a `gpt-5` build (~60-120 s). Pre-warming means every shareable URL renders instantly when a stakeholder opens it.
 
 - [ ] **Step 1: Get the token list.** In Supabase SQL Editor:
 
@@ -227,7 +230,7 @@ for TOK in tok1 tok2 tok3 tok4 tok5 tok6 tok7 tok8 tok9 tok10; do
 done
 ```
 
-Each call takes ~60-120 s on `glm-4.7`. Total wall-clock for 10 demos: ~15-20 minutes. Cost on Z.ai for ten builds: ~$0.30-$1 depending on context size. Acceptable for a one-off pre-warm.
+Each call takes ~60-120 s on `gpt-5`. Total wall-clock for 10 demos: ~15-20 minutes. Cost on Azure AI Foundry for ten builds: low (varies by GPT-5 pricing × context size — watch the Foundry project's usage tile). Acceptable for a one-off pre-warm.
 
 - [ ] **Step 3: Verify a cached itinerary serves instantly.** Once warmed, opening `/i/<token>` should render the JSON within a couple of seconds.
 
@@ -239,7 +242,7 @@ Each call takes ~60-120 s on `glm-4.7`. Total wall-clock for 10 demos: ~15-20 mi
 
 - [ ] **Step 2: Cold-start awareness (free tier only).** Render's free plan shuts the dyno after 15 min of no traffic. The first request after a sleep returns in ~30 s while the dyno wakes. Subsequent requests are fast. For a live demo: hit `/api/health` 30 s before showing the URL to warm the dyno. If this becomes annoying, upgrade to Starter ($7/mo).
 
-- [ ] **Step 3: Cost monitor.** Render free tier is free forever, but every chat session and every V1 build calls Z.ai. Watch the Z.ai dashboard (https://z.ai/manage-apikey/usage) for spend. `glm-4.7` (the current default) costs more than `glm-4.7-flash`. If a stakeholder URL leaks and a bot crawls every booking's `/i/<token>` URL, every token's first visit will trigger a fresh build. Mitigation: pre-warm the demos (Task 6 above), and consider rate-limiting `/api/itinerary/:token/generate` to once per token per 24h.
+- [ ] **Step 3: Cost monitor.** Render free tier is free forever, but every chat session and every V1 build calls Azure AI Foundry. Watch the Foundry project's usage tab (and any cost-management alert you set on the Azure subscription) for spend. `gpt-5` (the current default) costs more than `gpt-5-mini`. If a stakeholder URL leaks and a bot crawls every booking's `/i/<token>` URL, every token's first visit will trigger a fresh build. Mitigation: pre-warm the demos (Task 6 above), and consider rate-limiting `/api/itinerary/:token/generate` to once per token per 24h.
 
 ---
 
@@ -249,7 +252,7 @@ If Render's free tier proves too slow or you want a region closer to AU users (R
 
 - [ ] Install `flyctl`: `brew install flyctl`
 - [ ] `cd outputs/concierge-app/server && fly launch` — accept defaults, pick Sydney region.
-- [ ] `fly secrets set SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... ZAI_API_KEY=...`
+- [ ] `fly secrets set SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... AZURE_AI_FOUNDRY_ENDPOINT=... AZURE_AI_FOUNDRY_API_KEY=...`
 - [ ] `fly deploy`
 - [ ] Verify on the `*.fly.dev` URL using the same Task 4 checklist.
 
@@ -274,8 +277,8 @@ Not in scope for the PoC. Documented here only so a future engineer knows the mi
 
 The deployment is complete when:
 
-1. `https://<your-render-subdomain>.onrender.com/api/health` returns `{"ok":true,"model":"glm-4.7"}` from a clean browser.
+1. `https://<your-render-subdomain>.onrender.com/api/health` returns `{"ok":true,"model":"gpt-5"}` from a clean browser.
 2. The deployed UI passes §7 row 1 end-to-end (Torquay itinerary mentions Farmers Market 27 Jun).
-3. The three secrets (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ZAI_API_KEY`) live only in the Render dashboard — `git grep -i "ZAI_API_KEY=" -- ':!docs' ':!**/*.md'` finds zero hits with a real key value.
+3. The four secrets (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `AZURE_AI_FOUNDRY_ENDPOINT`, `AZURE_AI_FOUNDRY_API_KEY`) live only in the Render dashboard — `git grep -i "AZURE_AI_FOUNDRY_API_KEY=" -- ':!docs' ':!**/*.md'` finds zero hits with a real key value.
 4. The Render Blueprint (`render.yaml`) is committed so future deploys are one click.
 5. `README.md` mentions the live URL so the next person knows where to look.

@@ -130,25 +130,30 @@ export async function pinBlock({ store, block_id, pinned }) {
   return { version };
 }
 
-// `regenerateDay` is GLM-driven; implemented but not unit-tested here.
+// `regenerateDay` is model-driven; implemented but not unit-tested here.
 // See Phase 4 Task 15 for the chat agent that wires it up.
-export async function regenerateDay({ store, anthropic, model, day_id, reason }) {
+export async function regenerateDay({ store, llm, model, day_id, reason }) {
   const doc = await store.load();
   const day = findDay(doc, day_id);
   if (!day) throw Object.assign(new Error('unknown day_id'), { httpStatus: 422 });
   const prompt = buildRegenerateDayPrompt(doc, day_id, reason);
-  const resp = await anthropic.messages.create({
-    model, max_tokens: 2000, system: prompt,
-    messages: [{ role: 'user', content: 'Produce the JSON now.' }],
+  const resp = await llm.chat.completions.create({
+    model,
+    max_completion_tokens: 2000,
+    messages: [
+      { role: 'system', content: prompt },
+      { role: 'user',   content: 'Produce the JSON now.' },
+    ],
+    response_format: { type: 'json_object' },
   });
-  const text = resp.content.filter(b => b.type === 'text').map(b => b.text).join('');
-  const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+  const text = resp.choices?.[0]?.message?.content ?? '';
+  const cleaned = String(text).replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
   let parsed;
   try { parsed = JSON.parse(cleaned); }
   catch { throw Object.assign(new Error('regenerate_day_unparseable'), { httpStatus: 502 }); }
   if (!parsed.day || parsed.day.id !== day_id) throw Object.assign(new Error('regenerate_day_invalid'), { httpStatus: 502 });
 
-  // softRepair the GLM-returned blocks before merging (fills missing icons, trims overlong strings, etc.)
+  // softRepair the model-returned blocks before merging (fills missing icons, trims overlong strings, etc.)
   const repairedParsed = softRepair({ days: [parsed.day] }, { weather: { days: day.weather ? [day.weather] : [] } });
   parsed.day = repairedParsed.days[0];
 
@@ -156,17 +161,17 @@ export async function regenerateDay({ store, anthropic, model, day_id, reason })
   const originalPinned = day.blocks
     .map((b, i) => b.pinned ? { index: i, block: b } : null)
     .filter(Boolean);
-  const freshFromGlm = (parsed.day.blocks || []).filter(b => !originalPinned.some(p => p.block.id === b.id));
+  const freshFromModel = (parsed.day.blocks || []).filter(b => !originalPinned.some(p => p.block.id === b.id));
 
   const merged = [];
   let freshIdx = 0;
-  const targetLen = originalPinned.length + freshFromGlm.length;
+  const targetLen = originalPinned.length + freshFromModel.length;
   for (let i = 0; i < targetLen; i++) {
     const pinHere = originalPinned.find(p => p.index === i);
     if (pinHere) {
       merged.push(pinHere.block);
-    } else if (freshIdx < freshFromGlm.length) {
-      merged.push(freshFromGlm[freshIdx++]);
+    } else if (freshIdx < freshFromModel.length) {
+      merged.push(freshFromModel[freshIdx++]);
     }
   }
   // Append any pinned blocks whose original index is out of range for the new length.

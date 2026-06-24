@@ -10,7 +10,7 @@ A five-star AI concierge that builds a personalised day-by-day stay itinerary fo
 1. A token deep link `/i/<token>` (one issued per booking; demo tokens were pre-issued in `db/v2_itineraries.sql`).
 2. The login fallback at `/` (member number + surname) which 302s to the same `/i/<token>`.
 
-The itinerary is generated once by GLM via Z.ai's Anthropic-compatible endpoint and stored as a JSON document. Chat refinement uses 12 tools (5 read-only + 7 mutation) to update the persisted doc; the frontend re-fetches after each turn.
+The itinerary is generated once by GPT-5 via Azure AI Foundry and stored as a JSON document. Chat refinement uses 12 tools (5 read-only + 7 mutation) to update the persisted doc; the frontend re-fetches after each turn.
 
 ## 2. Architecture
 
@@ -26,7 +26,7 @@ Express backend (server/)
    ├─ itinerary/          (generator, mutator, schema, summarizer)
    ├─ agent/              (chatAgent, chatTools, systemPrompt)
    ├─ liveEvents/         (live event fetcher — unchanged from V1)
-   ├─ Z.ai GLM            (anthropic-compatible endpoint)
+   ├─ Azure AI Foundry    (GPT-5, OpenAI SDK in Azure mode)
    ├─ Supabase            (members, bookings, events, itineraries)
    └─ Open-Meteo          (weather)
 ```
@@ -38,7 +38,7 @@ Express backend (server/)
 # In Supabase SQL Editor, run db/schema.sql, db/seed.sql, db/seed_docs.sql, db/v2_itineraries.sql in order.
 
 cd server
-cp .env.example .env       # fill in SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ZAI_API_KEY
+cp .env.example .env       # fill in SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, AZURE_AI_FOUNDRY_ENDPOINT, AZURE_AI_FOUNDRY_API_KEY
 npm install
 npm start
 # → http://localhost:3000

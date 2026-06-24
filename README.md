@@ -9,7 +9,7 @@ A standalone web app: members deep-link or log in, see a personalised day-by-day
 
 1. **Supabase:** run `db/schema.sql`, `db/seed.sql`, `db/seed_docs.sql`, `db/v2_itineraries.sql` in the SQL Editor. (See SETUP.md.)
 2. **Manual step:** save 10 resort hero images per SETUP.md §5.
-3. **Config:** `cd server && cp .env.example .env`, then fill in your Supabase URL + service role key and Z.ai API key.
+3. **Config:** `cd server && cp .env.example .env`, then fill in your Supabase URL + service role key and Azure AI Foundry endpoint + API key.
 4. **Run:**
    ```bash
    cd server
@@ -22,7 +22,7 @@ A standalone web app: members deep-link or log in, see a personalised day-by-day
 
 - `/i/<token>` deep-links to a pre-generated itinerary per booking.
 - `/` is the login fallback for members without a deep-link URL.
-- The backend uses Z.ai's Anthropic-compatible endpoint (default `glm-4.7`; switch to `glm-4.7-flash` via `ZAI_MODEL` for cheaper/faster dev iteration).
+- The backend uses Azure AI Foundry (default deployment `gpt-5`; switch via `AZURE_AI_FOUNDRY_MODEL` — e.g. `gpt-5-mini` for cheaper/faster dev iteration).
 - The itinerary is a single JSON document mutated by 7 chat tools.
 
 (Detailed architecture in HANDOVER.md.)
